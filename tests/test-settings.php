@@ -42,7 +42,7 @@ $clean = $settings->sanitize(array(
     'meta_key_artist_en' => 'Artist EN / Custom',
     'singer_taxonomy' => 'Singer Type!',
 ));
-settings_ok($clean['meta_key_artist_en'] === 'artisten_custom', 'metadata setting is sanitized as a key');
+settings_ok($clean['meta_key_artist_en'] === 'artistencustom', 'metadata setting is sanitized as a key');
 settings_ok($clean['singer_taxonomy'] === 'singertype', 'taxonomy setting is sanitized as a key');
 
 echo $fails === 0 ? "\nALL TESTS PASSED\n" : "\n$fails TEST(S) FAILED\n";
