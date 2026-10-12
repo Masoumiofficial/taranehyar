@@ -2,6 +2,8 @@
 
 این راهنما قدم‌به‌قدم، نصب افزونه و اسکریپت هاست دانلود را توضیح می‌دهد.
 
+> [دانلود مستقیم نسخهٔ PDF فارسی راهنما (نسخهٔ ۱.۰.۲)](https://github.com/Masoumiofficial/taranehyar/releases/download/v1.0.2/taranehyar-install-guide-fa-v1.0.2.pdf)
+
 ---
 
 ## ۱. پیش‌نیازها
