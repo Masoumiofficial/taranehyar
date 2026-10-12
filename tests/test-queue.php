@@ -17,6 +17,7 @@ function update_option($key, $value, $autoload = null) {
 function wp_next_scheduled($hook) { return false; }
 function wp_schedule_single_event($timestamp, $hook) { return true; }
 function spawn_cron() { return true; }
+function is_wp_error($value) { return false; }
 
 class TaranehYar_Http {
     public static $requests = array();
