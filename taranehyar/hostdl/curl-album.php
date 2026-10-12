@@ -4,10 +4,8 @@
  *
  * ورودی (POST): token, album_name, artist_en, song_en, cover, tag_site
  *               track_name_{N}, track_file_{N}, track_link320_{N}, track_link128_{N}  (N=1..15)
- * خروجی:        album/{Y/m/d}/{album_name} [320]/{track_file}.mp3
- *               album/{Y/m/d}/{album_name} [128]/{track_file} [128].mp3
- *               album/{Y/m/d}/{album_name} [320].zip
- *               album/{Y/m/d}/{album_name} [128].zip
+ * خروجی جدید:   album/{letter}/{artist-slug}/{album_name} [320/128]/... + zip
+ * سازگاری قدیم: album/{Y/m/d}/... در صورت نبودن archive_path
  */
 require_once __DIR__ . '/bootstrap.php';
 smp_require_auth();
@@ -20,13 +18,14 @@ $song_en    = isset($_POST['song_en']) ? trim((string) $_POST['song_en']) : '';
 $cover      = isset($_POST['cover']) ? trim((string) $_POST['cover']) : '';
 $tag_site   = isset($_POST['tag_site']) ? trim((string) $_POST['tag_site']) : '';
 
-$jdate   = jdate_win('Y/m/d', time());
-$dir320  = "album/{$jdate}/{$album_name} [320]";
-$dir128  = "album/{$jdate}/{$album_name} [128]";
+$legacy_dir = 'album/' . jdate_win('Y/m/d', time());
+$dir_file   = smp_archive_directory('album', $legacy_dir);
+$dir320     = "{$dir_file}/{$album_name} [320]";
+$dir128     = "{$dir_file}/{$album_name} [128]";
 smp_mkdir($dir320);
 smp_mkdir($dir128);
 
-$cover_temp = __DIR__ . "/album/{$jdate}/{$album_name}.cover.jpg";
+$cover_temp = __DIR__ . "/{$dir_file}/{$album_name}.cover.jpg";
 $has_cover  = ($cover !== '') ? smp_download($cover, $cover_temp) : false;
 
 for ($i = 1; $i <= 15; $i++) {
@@ -71,8 +70,8 @@ function smp_zip_dir($srcDir, $zipPath)
     return true;
 }
 
-smp_zip_dir(__DIR__ . "/{$dir320}", __DIR__ . "/album/{$jdate}/{$album_name} [320].zip");
-smp_zip_dir(__DIR__ . "/{$dir128}", __DIR__ . "/album/{$jdate}/{$album_name} [128].zip");
+smp_zip_dir(__DIR__ . "/{$dir320}", __DIR__ . "/{$dir_file}/{$album_name} [320].zip");
+smp_zip_dir(__DIR__ . "/{$dir128}", __DIR__ . "/{$dir_file}/{$album_name} [128].zip");
 
 http_response_code(200);
 echo 'OK';

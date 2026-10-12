@@ -45,7 +45,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # پایین‌ترین نسخه پشتیبانی‌شده (7.2) + نسخه‌های رایج امروز
+        # قدیمی‌ترین نسخهٔ تست‌شده در CI + نسخه‌های رایج امروز
         php: ['7.4', '8.1', '8.3']
     steps:
       - name: دریافت کد
@@ -58,7 +58,11 @@ jobs:
           coverage: none
 
       - name: اجرای تست‌های عملکردی
-        run: php tests/test-hostdl.php
+        run: |
+          php tests/test-hostdl.php
+          php tests/test-archive.php
+          php tests/test-settings.php
+          php tests/test-queue.php
 
   build:
     name: ساخت بسته‌های انتشار
@@ -74,6 +78,7 @@ jobs:
         run: |
           set -euo pipefail
           unzip -l dist/taranehyar.zip | grep -q 'taranehyar/taranehyar\.php'
+          unzip -l dist/taranehyar.zip | grep -q 'includes/class-ty-archive.php'
           unzip -l dist/taranehyar.zip | grep -q 'hostdl/bootstrap.php'
           unzip -l dist/taranehyar.zip | grep -q 'hostdl/getid3/getid3.php'
           unzip -l dist/taranehyar-hostdl.zip | grep -q 'hostdl/curl-music.php'

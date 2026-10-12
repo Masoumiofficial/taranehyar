@@ -3,8 +3,8 @@
  * TaranehYar | HostDL - endpoint لیچ فایل
  *
  * ورودی (POST): token, file_name, artist_en, song_en, linkfilemp3, linkfilemp4, cover, tag_site
- * خروجی:        music/{Y/m/d}/{file_name}.mp3
- *               music/{Y/m/d}/{file_name}.mp4
+ * خروجی جدید:   leech/{letter}/{artist-slug}/{file_name}.mp3 و .mp4
+ * سازگاری قدیم: music/{Y/m/d}/... در صورت نبودن archive_path
  */
 require_once __DIR__ . '/bootstrap.php';
 smp_require_auth();
@@ -17,7 +17,7 @@ $link_mp4  = isset($_POST['linkfilemp4']) ? trim((string) $_POST['linkfilemp4'])
 $cover     = isset($_POST['cover']) ? trim((string) $_POST['cover']) : '';
 $tag_site  = isset($_POST['tag_site']) ? trim((string) $_POST['tag_site']) : '';
 
-$dir_file = 'music/' . jdate_win('Y/m/d', time());
+$dir_file = smp_archive_directory('leech', 'music/' . jdate_win('Y/m/d', time()));
 smp_mkdir($dir_file);
 
 $cover_temp = __DIR__ . "/{$dir_file}/{$file_name}.cover.jpg";

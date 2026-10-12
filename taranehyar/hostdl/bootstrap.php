@@ -34,6 +34,51 @@ function smp_safe_name($name)
     return $name !== '' ? $name : 'file';
 }
 
+/**
+ * Validate and normalize the new date-free archive path sent by WordPress.
+ * Paths are always relative and have exactly the form: {root}/{letter}/{slug}.
+ *
+ * @return string|false Canonical relative path, or false when invalid.
+ */
+function smp_validate_archive_path($path, $expected_root = '')
+{
+    if (!is_string($path) || $path === '' || strlen($path) > 180) return false;
+    if ($path[0] === '/' || strpos($path, chr(92)) !== false || strpos($path, "\0") !== false) return false;
+
+    // A trailing slash is accepted for interoperability, then removed.
+    if (substr($path, -1) === '/') $path = substr($path, 0, -1);
+    if ($path === '' || strpos($path, '//') !== false) return false;
+
+    $parts = explode('/', $path);
+    if (count($parts) !== 3) return false;
+
+    $roots = array('music', 'music-video', 'album', 'leech');
+    if (!in_array($parts[0], $roots, true)) return false;
+    if ($expected_root !== '' && $parts[0] !== $expected_root) return false;
+    if (!preg_match('/^[a-z0-9]$/', $parts[1])) return false;
+    if (!preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $parts[2])) return false;
+    if ($parts[1] !== substr($parts[2], 0, 1)) return false;
+
+    return implode('/', $parts);
+}
+
+/**
+ * Use a validated new archive path, or preserve the historical date path for
+ * requests queued by older versions of the plugin.
+ */
+function smp_archive_directory($expected_root, $legacy_path)
+{
+    if (!isset($_POST['archive_path']) || $_POST['archive_path'] === '') return $legacy_path;
+
+    $path = smp_validate_archive_path($_POST['archive_path'], $expected_root);
+    if ($path === false) {
+        http_response_code(400);
+        exit('Invalid archive_path');
+    }
+
+    return $path;
+}
+
 /** ── آیا میزبان عمومی است؟ (ضد SSRF) ─────────────────────────────── */
 function smp_host_is_public($host)
 {

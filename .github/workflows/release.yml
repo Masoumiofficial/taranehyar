@@ -57,7 +57,11 @@ jobs:
           coverage: none
 
       - name: اجرای تست‌ها قبل از انتشار
-        run: php tests/test-hostdl.php
+        run: |
+          php tests/test-hostdl.php
+          php tests/test-archive.php
+          php tests/test-settings.php
+          php tests/test-queue.php
 
       - name: تنظیم هویت git برای ساخت برچسب
         run: |
