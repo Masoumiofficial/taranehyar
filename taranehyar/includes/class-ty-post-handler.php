@@ -38,6 +38,31 @@ class TaranehYar_Post_Handler {
         return TaranehYar_Settings::get( $key, $default );
     }
 
+    /** Write a template-dependent custom field using its configured key. */
+    private function update_mapped_meta( $post_id, $key, $value ) {
+        $meta_key = TaranehYar_Settings::meta_key( $key );
+        if ( $meta_key !== '' ) {
+            update_post_meta( $post_id, $meta_key, $value );
+        }
+    }
+
+    /** Build a date-free archive path from the English artist name. */
+    private function archive_path( $root, $artist_en ) {
+        return TaranehYar_Archive::path( $root, $artist_en );
+    }
+
+    /** Join an archive path and file name to the configured download host URL. */
+    private function download_file_url( $host, $archive_path, $filename ) {
+        return trailingslashit( $host ) . trailingslashit( $archive_path ) . ltrim( $filename, '/' );
+    }
+
+    /** Return the configured singer taxonomy, preserving the historical default. */
+    private function singer_taxonomy() {
+        $configured = $this->cfg( 'singer_taxonomy', 'singer' );
+        $taxonomy = is_scalar( $configured ) ? sanitize_key( $configured ) : '';
+        return $taxonomy !== '' ? $taxonomy : 'singer';
+    }
+
     /**
      * بررسی پسوند فایل آپلودی نسبت به لیست مجاز.
      * این تابع جلوی آپلود فایل‌های اجرایی (php, exe, ...) رو می‌گیره.
@@ -186,11 +211,6 @@ class TaranehYar_Post_Handler {
         return array( '', null );
     }
 
-    private function jdate_dir() {
-        require_once TY_PLUGIN_DIR . 'includes/jdf.php';
-        return jdate_win( 'Y/m/d', time() );
-    }
-
     private function check_duplicate_title( $title ) {
         global $wpdb;
         $existing = $wpdb->get_var(
@@ -286,9 +306,9 @@ class TaranehYar_Post_Handler {
         $uploads_dir = $this->ensure_upload_dir( $year, $months );
 
         $trackname   = $this->safe_filename( "{$enname} - {$entrack}" );
-        $dir_file    = 'music/' . $this->jdate_dir();
-        $filename320 = "{$urldlhost}/{$dir_file}/{$trackname}.mp3";
-        $filename128 = "{$urldlhost}/{$dir_file}/{$trackname} [128].mp3";
+        $archive_path = $this->archive_path( 'music', $enname );
+        $filename320 = $this->download_file_url( $urldlhost, $archive_path, $trackname . '.mp3' );
+        $filename128 = $this->download_file_url( $urldlhost, $archive_path, $trackname . ' [128].mp3' );
         $img_url     = trailingslashit( $this->upload_base()['url'] ) . "{$year}/{$months}/{$trackname}.jpg";
         $img_path    = $uploads_dir . "/{$trackname}.jpg";
 
@@ -338,7 +358,7 @@ class TaranehYar_Post_Handler {
 
         $tags = array( 'download new music', 'دانلود آهنگ جدید', 'دانلود آهنگ ایرانی', $name, $enname );
         wp_set_post_tags( $post_id, $tags );
-        wp_set_object_terms( $post_id, $name, 'singer' );
+        wp_set_object_terms( $post_id, $name, $this->singer_taxonomy() );
         if ( $songwriter ) wp_set_object_terms( $post_id, $songwriter, 'songwriter' );
         if ( $composer )   wp_set_object_terms( $post_id, $composer,   'composer' );
         if ( $regulator )  wp_set_object_terms( $post_id, $regulator,  'regulator' );
@@ -349,14 +369,14 @@ class TaranehYar_Post_Handler {
         update_post_meta( $post_id, '_yoast_wpseo_focuskw',       strip_tags( "آهنگ {$name} {$track}" ) );
         update_post_meta( $post_id, '_yoast_wpseo_linkdex',       '99' );
         update_post_meta( $post_id, '_yoast_wpseo_content_score', '99' );
-        update_post_meta( $post_id, 'art_name',       $name );
-        update_post_meta( $post_id, 'track_name',     $track );
-        update_post_meta( $post_id, 'artist_en',      $enname );
-        update_post_meta( $post_id, 'song_en',        $entrack );
-        update_post_meta( $post_id, 'music_txt',      $lyric );
-        update_post_meta( $post_id, 'fifu_image_alt', $title );
+        $this->update_mapped_meta( $post_id, 'art_name',       $name );
+        $this->update_mapped_meta( $post_id, 'track_name',     $track );
+        $this->update_mapped_meta( $post_id, 'artist_en',      $enname );
+        $this->update_mapped_meta( $post_id, 'song_en',        $entrack );
+        $this->update_mapped_meta( $post_id, 'music_txt',      $lyric );
+        $this->update_mapped_meta( $post_id, 'fifu_image_alt', $title );
         update_post_meta( $post_id, 'fifu_image_url', $img_url );
-        update_post_meta( $post_id, 'musics_type',    $musics_type );
+        $this->update_mapped_meta( $post_id, 'musics_type',    $musics_type );
         update_post_meta( $post_id, 'online_ply',     'off' );
         update_post_meta( $post_id, 'pplayer_in',     'off' );
         update_post_meta( $post_id, 'select_effect',  'imghvr-shutter-in-out-diag-1' );
@@ -367,11 +387,11 @@ class TaranehYar_Post_Handler {
 
         list( $send320, $r ) = $this->prepare_source( 'filelink320', $link320, "temp-{$post_id}-320", self::ALLOWED_AUDIO, $uploads_dir, $uploads_url, $cleanup );
         $this->collect_warning( $warnings, $r, 'فایل ۳۲۰' );
-        if ( $send320 !== '' ) update_post_meta( $post_id, 'music320', $filename320 );
+        if ( $send320 !== '' ) $this->update_mapped_meta( $post_id, 'music320', $filename320 );
 
         list( $send128, $r ) = $this->prepare_source( 'filelink128', $link128, "temp-{$post_id}-128", self::ALLOWED_AUDIO, $uploads_dir, $uploads_url, $cleanup );
         $this->collect_warning( $warnings, $r, 'فایل ۱۲۸' );
-        if ( $send128 !== '' ) update_post_meta( $post_id, 'music128', $filename128 );
+        if ( $send128 !== '' ) $this->update_mapped_meta( $post_id, 'music128', $filename128 );
 
         $r = $this->upload_or_download( 'filecover', $cover, $img_path, self::ALLOWED_IMAGE );
         $this->collect_warning( $warnings, $r, 'کاور' );
@@ -387,6 +407,7 @@ class TaranehYar_Post_Handler {
             'type'         => $type_label,
             'title'        => $title,
             'endpoint_key' => $curl_key,
+            'archive_path' => $archive_path,
             'data'         => array(
                 'file_name' => $trackname,
                 'artist_en' => $enname,
@@ -411,15 +432,15 @@ class TaranehYar_Post_Handler {
     }
 
     public function handle_music() {
-        $this->handle_music_type( 'ty_submit_music', 'ty-dashboard', 'urlfunction_music', 'cat_music', '10,12', 'musicss', 'تک آهنگ' );
+        $this->handle_music_type( 'ty_submit_music', 'ty-dashboard', 'urlfunction_music', 'cat_music', '10,12', 'mp3', 'تک آهنگ' );
     }
 
     public function handle_remix() {
-        $this->handle_music_type( 'ty_submit_remix', 'ty-remix', 'urlfunction_remix', 'cat_remix', '10,13', 'musicss_remix', 'ریمیکس' );
+        $this->handle_music_type( 'ty_submit_remix', 'ty-remix', 'urlfunction_remix', 'cat_remix', '10,13', 'mp3', 'ریمیکس' );
     }
 
     public function handle_nohe() {
-        $this->handle_music_type( 'ty_submit_nohe', 'ty-nohe', 'urlfunction_nohe', 'cat_nohe', '10,14', 'musicss_nohe', 'نوحه' );
+        $this->handle_music_type( 'ty_submit_nohe', 'ty-nohe', 'urlfunction_nohe', 'cat_nohe', '10,14', 'mp3', 'نوحه' );
     }
 
     /* ═══════════════════════════════════════════════
@@ -463,9 +484,9 @@ class TaranehYar_Post_Handler {
         $year   = date( 'Y' ); $months = date( 'm' );
         $uploads_dir = $this->ensure_upload_dir( $year, $months );
 
-        $trackname = $this->safe_filename( "{$enname} - {$entrack}" );
-        $dir_file  = 'video/' . $this->jdate_dir();
-        $img_url   = trailingslashit( $this->upload_base()['url'] ) . "{$year}/{$months}/{$trackname}.jpg";
+        $trackname   = $this->safe_filename( "{$enname} - {$entrack}" );
+        $archive_path = $this->archive_path( 'music-video', $enname );
+        $img_url     = trailingslashit( $this->upload_base()['url'] ) . "{$year}/{$months}/{$trackname}.jpg";
         $img_path  = $uploads_dir . "/{$trackname}.jpg";
 
         $seo_title = "دانلود موزیک ویدیو {$name} به نام {$track} - " . $this->cfg( 'namesite' );
@@ -499,17 +520,27 @@ class TaranehYar_Post_Handler {
 
         update_post_meta( $post_id, '_yoast_wpseo_title',    strip_tags( $seo_title ) );
         update_post_meta( $post_id, '_yoast_wpseo_metadesc', strip_tags( $metadesc ) );
-        update_post_meta( $post_id, 'art_name',       $name );
-        update_post_meta( $post_id, 'track_name',     $track );
-        update_post_meta( $post_id, 'artist_en',      $enname );
-        update_post_meta( $post_id, 'song_en',        $entrack );
+        $this->update_mapped_meta( $post_id, 'art_name',       $name );
+        $this->update_mapped_meta( $post_id, 'track_name',     $track );
+        $this->update_mapped_meta( $post_id, 'artist_en',      $enname );
+        $this->update_mapped_meta( $post_id, 'song_en',        $entrack );
+        $this->update_mapped_meta( $post_id, 'fifu_image_alt', $title );
         update_post_meta( $post_id, 'fifu_image_url', $img_url );
-        update_post_meta( $post_id, 'musics_type',    'musicss_video' );
-        update_post_meta( $post_id, 'online_ply',     'off' );
-        if ( ! empty( $link1080 ) ) update_post_meta( $post_id, 'video1080', "{$urldlhost}/{$dir_file}/{$trackname} [1080].mp4" );
-        if ( ! empty( $link720 ) )  update_post_meta( $post_id, 'video720',  "{$urldlhost}/{$dir_file}/{$trackname} [720].mp4" );
-        if ( ! empty( $link480 ) )  update_post_meta( $post_id, 'video480',  "{$urldlhost}/{$dir_file}/{$trackname} [480].mp4" );
-        if ( ! empty( $link320 ) )  update_post_meta( $post_id, 'music320',  "{$urldlhost}/{$dir_file}/{$trackname}.mp3" );
+        $this->update_mapped_meta( $post_id, 'musics_type', 'mp4' );
+        update_post_meta( $post_id, 'online_ply', 'off' );
+        wp_set_object_terms( $post_id, $name, $this->singer_taxonomy() );
+        if ( ! empty( $link1080 ) ) {
+            $this->update_mapped_meta( $post_id, 'video1080p', $this->download_file_url( $urldlhost, $archive_path, $trackname . ' [1080].mp4' ) );
+        }
+        if ( ! empty( $link720 ) ) {
+            $this->update_mapped_meta( $post_id, 'video720p', $this->download_file_url( $urldlhost, $archive_path, $trackname . ' [720].mp4' ) );
+        }
+        if ( ! empty( $link480 ) ) {
+            $this->update_mapped_meta( $post_id, 'video480p', $this->download_file_url( $urldlhost, $archive_path, $trackname . ' [480].mp4' ) );
+        }
+        if ( ! empty( $link320 ) ) {
+            $this->update_mapped_meta( $post_id, 'music320', $this->download_file_url( $urldlhost, $archive_path, $trackname . '.mp3' ) );
+        }
 
         $warnings = array();
 
@@ -526,6 +557,7 @@ class TaranehYar_Post_Handler {
             'type'         => 'موزیک ویدیو',
             'title'        => $title,
             'endpoint_key' => 'urlfunction_video',
+            'archive_path' => $archive_path,
             'data'         => array(
                 'file_name' => $trackname,
                 'artist_en' => $enname,
@@ -590,7 +622,7 @@ class TaranehYar_Post_Handler {
         $album_name    = $this->safe_filename( "{$artist_en} - {$song_en}" );
         $album_name128 = "{$album_name} [128]";
         $album_name320 = "{$album_name} [320]";
-        $dir_file      = 'album/' . $this->jdate_dir();
+        $archive_path  = $this->archive_path( 'album', $artist_en );
         $img_path      = $uploads_dir . "/{$album_name}.jpg";
         $img_url       = trailingslashit( $this->upload_base()['url'] ) . "{$year}/{$months}/{$album_name}.jpg";
 
@@ -631,21 +663,22 @@ class TaranehYar_Post_Handler {
 
         update_post_meta( $post_id, '_yoast_wpseo_title',    strip_tags( $seo_title ) );
         update_post_meta( $post_id, '_yoast_wpseo_metadesc', strip_tags( $metadesc ) );
-        update_post_meta( $post_id, 'art_name',       $artist );
-        update_post_meta( $post_id, 'track_name',     $song );
-        update_post_meta( $post_id, 'artist_en',      $artist_en );
-        update_post_meta( $post_id, 'song_en',        $song_en );
+        $this->update_mapped_meta( $post_id, 'art_name',       $artist );
+        $this->update_mapped_meta( $post_id, 'track_name',     $song );
+        $this->update_mapped_meta( $post_id, 'artist_en',      $artist_en );
+        $this->update_mapped_meta( $post_id, 'song_en',        $song_en );
+        $this->update_mapped_meta( $post_id, 'fifu_image_alt', $title );
         update_post_meta( $post_id, 'fifu_image_url', $img_url );
-        update_post_meta( $post_id, 'musics_type',    'musicss_album' );
-        update_post_meta( $post_id, 'online_ply',     'off' );
-        update_post_meta( $post_id, 'slider_song',    'off' );
-        update_post_meta( $post_id, 'pplayer_in',     'off' );
-        update_post_meta( $post_id, 'album320',       "{$urldlhost}/{$dir_file}/{$album_name320}.zip" );
-        update_post_meta( $post_id, 'album128',       "{$urldlhost}/{$dir_file}/{$album_name128}.zip" );
-        update_post_meta( $post_id, 'talbume320',     "{$urldlhost}/{$dir_file}/{$album_name320}" );
-        update_post_meta( $post_id, 'talbume128',     "{$urldlhost}/{$dir_file}/{$album_name128}" );
+        $this->update_mapped_meta( $post_id, 'musics_type', 'album' );
+        update_post_meta( $post_id, 'online_ply',  'off' );
+        update_post_meta( $post_id, 'slider_song', 'off' );
+        update_post_meta( $post_id, 'pplayer_in',  'off' );
+        $this->update_mapped_meta( $post_id, 'album320', $this->download_file_url( $urldlhost, $archive_path, $album_name320 . '.zip' ) );
+        $this->update_mapped_meta( $post_id, 'album128', $this->download_file_url( $urldlhost, $archive_path, $album_name128 . '.zip' ) );
+        update_post_meta( $post_id, 'talbume320', $this->download_file_url( $urldlhost, $archive_path, $album_name320 . '/' ) );
+        update_post_meta( $post_id, 'talbume128', $this->download_file_url( $urldlhost, $archive_path, $album_name128 . '/' ) );
 
-        wp_set_object_terms( $post_id, $artist, 'singer' );
+        wp_set_object_terms( $post_id, $artist, $this->singer_taxonomy() );
         wp_set_post_tags( $post_id, array( 'download new album', 'دانلود آلبوم', 'دانلود آلبوم جدید', $artist, $artist_en ) );
 
         $tracks_data   = array();
@@ -663,10 +696,12 @@ class TaranehYar_Post_Handler {
             $tfile = $this->safe_filename( "{$artist_en} - {$tname}" );
             $tracks_data[] = array(
                 'title'     => $tname,
-                'al_url320' => "{$urldlhost}/{$dir_file}/{$album_name320}/{$tfile}.mp3",
-                'al_url128' => "{$urldlhost}/{$dir_file}/{$album_name128}/{$tfile} [128].mp3",
+                'al_url320' => $this->download_file_url( $urldlhost, $archive_path, $album_name320 . '/' . $tfile . '.mp3' ),
+                'al_url128' => $this->download_file_url( $urldlhost, $archive_path, $album_name128 . '/' . $tfile . ' [128].mp3' ),
             );
         }
+        $this->update_mapped_meta( $post_id, 'album', $tracks_data );
+        // Keep the historical field as an alias for themes that already consume it.
         update_post_meta( $post_id, 'album_dl', $tracks_data );
 
         $warnings = array();
@@ -700,6 +735,7 @@ class TaranehYar_Post_Handler {
             'type'         => 'آلبوم',
             'title'        => $title,
             'endpoint_key' => 'urlfunction_album',
+            'archive_path' => $archive_path,
             'data'         => $curl_data,
         ) );
 
@@ -741,6 +777,7 @@ class TaranehYar_Post_Handler {
         $uploads_dir = $this->ensure_upload_dir( $year, $months );
         $uploads_url = trailingslashit( $this->upload_base()['url'] ) . "{$year}/{$months}";
         $filenames = $this->safe_filename( "{$enname} - {$entrack}" );
+        $archive_path = $this->archive_path( 'leech', $enname );
 
         $uid      = uniqid();
         $warnings = array();
@@ -759,6 +796,7 @@ class TaranehYar_Post_Handler {
             'type'         => 'لیچ فایل',
             'title'        => $filenames,
             'endpoint_key' => 'urlfunction_leech',
+            'archive_path' => $archive_path,
             'data'         => array(
                 'file_name'   => $filenames,
                 'artist_en'   => $enname,

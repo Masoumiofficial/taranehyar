@@ -3,12 +3,36 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
 class TaranehYar_Settings {
 
+    const META_KEY_DEFAULTS = array(
+        'musics_type'    => 'musics_type',
+        'artist_en'      => 'artist_en',
+        'song_en'        => 'song_en',
+        'art_name'       => 'art_name',
+        'track_name'     => 'track_name',
+        'music_txt'      => 'music_txt',
+        'music128'       => 'music128',
+        'music320'       => 'music320',
+        'album'          => 'album',
+        'album128'       => 'album128',
+        'album320'       => 'album320',
+        'video480p'      => 'video480p',
+        'video720p'      => 'video720p',
+        'video1080p'     => 'video1080p',
+        'fifu_image_alt' => 'fifu_image_alt',
+    );
+
     const ALL_KEYS = array(
         'urldlhost','urlfunction_music','urlfunction_remix','urlfunction_video',
         'urlfunction_album','urlfunction_nohe','urlfunction_leech',
         'apitoken',
         'namesite','namesite2','urlsite',
         'cat_music','cat_remix','cat_nohe','cat_video','cat_album',
+        'singer_taxonomy',
+        'meta_key_musics_type','meta_key_artist_en','meta_key_song_en',
+        'meta_key_art_name','meta_key_track_name','meta_key_music_txt',
+        'meta_key_music128','meta_key_music320','meta_key_album',
+        'meta_key_album128','meta_key_album320','meta_key_video480p',
+        'meta_key_video720p','meta_key_video1080p','meta_key_fifu_image_alt',
     );
 
     public function init() {
@@ -27,15 +51,22 @@ class TaranehYar_Settings {
     }
 
     public function sanitize( $input ) {
+        $input = is_array( $input ) ? $input : array();
         $clean = array();
         foreach ( self::ALL_KEYS as $k ) {
-            $clean[ $k ] = isset( $input[ $k ] ) ? sanitize_text_field( $input[ $k ] ) : '';
+            $value = isset( $input[ $k ] ) && is_scalar( $input[ $k ] ) ? (string) $input[ $k ] : '';
+            if ( $k === 'singer_taxonomy' || strpos( $k, 'meta_key_' ) === 0 ) {
+                $clean[ $k ] = sanitize_key( $value );
+            } else {
+                $clean[ $k ] = sanitize_text_field( $value );
+            }
         }
         return $clean;
     }
 
-    private function row( $opts, $key, $label, $placeholder = '' ) {
-        $val = isset( $opts[ $key ] ) ? esc_attr( $opts[ $key ] ) : '';
+    private function row( $opts, $key, $label, $placeholder = '', $default_value = '' ) {
+        $value = isset( $opts[ $key ] ) && $opts[ $key ] !== '' ? $opts[ $key ] : $default_value;
+        $val = esc_attr( $value );
         echo '<tr><th>' . esc_html( $label ) . '</th><td><input type="text" name="ty_options[' . esc_attr( $key ) . ']" value="' . $val . '" placeholder="' . esc_attr( $placeholder ) . '"></td></tr>';
     }
 
@@ -101,6 +132,20 @@ class TaranehYar_Settings {
                 </div>
 
                 <div class="ty-card">
+                    <div class="ty-card-title">🧩 سازگاری با قالب (کلیدهای متا و تکسونومی)</div>
+                    <table class="ty-settings-table">
+                        <?php
+                        $this->row( $opts, 'singer_taxonomy', 'تکسونومی خواننده', 'singer', 'singer' );
+                        foreach ( self::META_KEY_DEFAULTS as $meta_key => $default_key ) {
+                            $option_key = 'meta_key_' . $meta_key;
+                            $this->row( $opts, $option_key, 'کلید متای ' . $meta_key, $default_key, $default_key );
+                        }
+                        ?>
+                    </table>
+                    <p class="ty-hint">💡 کلیدهای پیش‌فرض با نام‌های رایج قالب‌های موزیک تنظیم شده‌اند. در صورت نیاز، نام کلیدهای متا و تکسونومی خواننده را با قالب خود هماهنگ کنید.</p>
+                </div>
+
+                <div class="ty-card">
                     <div class="ty-card-title">📁 دسته‌بندی‌ها (Category ID)</div>
                     <table class="ty-settings-table">
                         <?php
@@ -133,5 +178,16 @@ class TaranehYar_Settings {
     public static function get( $key, $default = '' ) {
         $options = get_option( 'ty_options', array() );
         return isset( $options[ $key ] ) && $options[ $key ] !== '' ? $options[ $key ] : $default;
+    }
+
+    /** Return a sanitized configured key, falling back to its canonical default. */
+    public static function meta_key( $key ) {
+        if ( ! isset( self::META_KEY_DEFAULTS[ $key ] ) ) {
+            return '';
+        }
+        $default = self::META_KEY_DEFAULTS[ $key ];
+        $configured = self::get( 'meta_key_' . $key, $default );
+        $configured = is_scalar( $configured ) ? sanitize_key( $configured ) : '';
+        return $configured !== '' ? $configured : $default;
     }
 }

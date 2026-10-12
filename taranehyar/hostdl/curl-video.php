@@ -3,10 +3,8 @@
  * TaranehYar | HostDL - endpoint موزیک ویدیو
  *
  * ورودی (POST): token, file_name, artist_en, song_en, link1080, link720, link480, link320, cover, tag_site
- * خروجی:        video/{Y/m/d}/{file_name} [1080].mp4
- *               video/{Y/m/d}/{file_name} [720].mp4
- *               video/{Y/m/d}/{file_name} [480].mp4
- *               video/{Y/m/d}/{file_name}.mp3
+ * خروجی جدید:   music-video/{letter}/{artist-slug}/{file_name} [1080/720/480].mp4 و .mp3
+ * سازگاری قدیم: video/{Y/m/d}/... در صورت نبودن archive_path
  */
 require_once __DIR__ . '/bootstrap.php';
 smp_require_auth();
@@ -21,7 +19,7 @@ $link320   = isset($_POST['link320']) ? trim((string) $_POST['link320']) : '';
 $cover     = isset($_POST['cover']) ? trim((string) $_POST['cover']) : '';
 $tag_site  = isset($_POST['tag_site']) ? trim((string) $_POST['tag_site']) : '';
 
-$dir_file = 'video/' . jdate_win('Y/m/d', time());
+$dir_file = smp_archive_directory('music-video', 'video/' . jdate_win('Y/m/d', time()));
 smp_mkdir($dir_file);
 
 if ($link1080 !== '') smp_download($link1080, __DIR__ . "/{$dir_file}/{$file_name} [1080].mp4");

@@ -2,7 +2,7 @@
 
 پنل حرفه‌ای ارسال پست موزیک، ریمیکس، نوحه، موزیک ویدیو، آلبوم و لیچ فایل برای سایت‌های موزیک وردپرسی.
 
-**نسخه فعلی:** 1.0.0 · **لایسنس:** GPL-2.0-or-later · **نویسنده:** [سجاد معصومی](https://sajadmasoumi.com)
+**نسخه فعلی:** 1.0.2 · **لایسنس:** GPL-2.0-or-later · **نویسنده:** [سجاد معصومی](https://sajadmasoumi.com)
 
 ## ساختار مخزن
 
@@ -29,7 +29,7 @@ ANALYSIS.md            گزارش تحلیل و آماده‌سازی برای �
 
 | وورکفلو | فایل | اجرا با | کار |
 |---|---|---|---|
-| **CI** | `.github/workflows/ci.yml` | push روی `main`، هر PR، اجرای دستی | بررسی نحو همه فایل‌های PHP (`php -l`)، اجرای `tests/test-hostdl.php` روی PHP 7.4/8.1/8.3، ساخت بسته‌ها با `build.sh` و بارگذاری آن‌ها به‌عنوان Artifact |
+| **CI** | `.github/workflows/ci.yml` | push روی `main`، هر PR، اجرای دستی | بررسی نحو همه فایل‌های PHP (`php -l`)، اجرای تست‌های HostDL/آرشیو/تنظیمات/صف روی PHP 7.4/8.1/8.3، ساخت بسته‌ها با `build.sh` و بارگذاری آن‌ها به‌عنوان Artifact |
 | **Release** | `.github/workflows/release.yml` | push برچسب `v*`، اجرای دستی | اجرای تست‌ها، سپس `./publish-release.sh` برای ساخت بسته‌ها، ساخت/به‌روزرسانی برچسب و انتشار GitHub Release با فایل‌های zip |
 
 اجرای دستی وورکفلو Release (از تب **Actions ← Release ← Run workflow** یا با `gh`):
@@ -48,7 +48,7 @@ gh workflow run release.yml -f mode=publish -f target=v1.0.0
 gh workflow run release.yml -f mode=publish -f draft=true
 ```
 
-> برای انتشار نسخه جدید: هدر `Version:` افزونه، `Stable tag:` در `readme.txt` و بخش `## <نسخه>` در `CHANGELOG.md` را یکسان کنید، سپس `git tag -a v1.0.1 -m "TaranehYar 1.0.1" && git push origin v1.0.1`.
+> برای انتشار نسخه جدید: هدر `Version:` افزونه، `Stable tag:` در `readme.txt` و بخش `## <نسخه>` در `CHANGELOG.md` را یکسان کنید، سپس برچسب نسخهٔ جدید را روی commit انتشار بسازید و push کنید (برای این نسخه: `v1.0.2`).
 
 ## ساخت بسته انتشار
 
@@ -65,5 +65,6 @@ gh workflow run release.yml -f mode=publish -f draft=true
 1. افزونه را نصب و فعال کنید.
 2. محتوای `hostdl/` را روی هاست دانلود آپلود کنید و در `config.php` یک توکن تصادفی طولانی بگذارید.
 3. در «پنل موزیک ← تنظیمات»: آدرس هاست دانلود، آدرس endpointها (`curl-music.php` برای تک آهنگ/ریمیکس/نوحه)، همان توکن، اطلاعات سایت و شناسه دسته‌بندی‌ها را وارد کنید.
+4. در بخش «سازگاری با قالب»، در صورت نیاز کلیدهای متا و تکسونومی خواننده (پیش‌فرض `singer`) را مطابق قالب خود تنظیم کنید.
 
-جزئیات پروتکل: [`taranehyar/hostdl/PROTOCOL.md`](taranehyar/hostdl/PROTOCOL.md)
+فایل‌های جدید در آرشیوهای بدون تاریخ و خواننده‌محور مانند `music/a/alireza-rozegar/` ذخیره می‌شوند. جزئیات مسیرهای جدید و سازگاری با مسیرهای قدیمی در [`taranehyar/hostdl/PROTOCOL.md`](taranehyar/hostdl/PROTOCOL.md) آمده است.

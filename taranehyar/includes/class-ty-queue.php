@@ -19,7 +19,7 @@ class TaranehYar_Queue {
     /**
      * افزودن کار به صف.
      *
-     * @param array $job type (برچسب فارسی), title, endpoint_key, data (داده ارسالی), cleanup (فایل‌های موقت برای حذف پس از ارسال)
+     * @param array $job type, title, endpoint_key, optional archive_path, data, cleanup (فایل‌های موقت برای حذف پس از ارسال)
      * @return string شناسه کار
      */
     public static function add( $job ) {
@@ -31,6 +31,7 @@ class TaranehYar_Queue {
             'type'         => isset( $job['type'] ) ? (string) $job['type'] : '',
             'title'        => isset( $job['title'] ) ? (string) $job['title'] : '',
             'endpoint_key' => isset( $job['endpoint_key'] ) ? (string) $job['endpoint_key'] : '',
+            'archive_path' => isset( $job['archive_path'] ) ? (string) $job['archive_path'] : '',
             'data'         => isset( $job['data'] ) && is_array( $job['data'] ) ? $job['data'] : array(),
             'cleanup'      => isset( $job['cleanup'] ) ? array_values( (array) $job['cleanup'] ) : array(),
             'created'      => time(),
@@ -73,7 +74,13 @@ class TaranehYar_Queue {
     private function process_item( $item ) {
         self::log( $item, 'processing', 'در حال انتقال به هاست دانلود…' );
 
-        $result = TaranehYar_Http::post_to_dlhost( $item['endpoint_key'], $item['data'] );
+        $data = isset( $item['data'] ) && is_array( $item['data'] ) ? $item['data'] : array();
+        // Older queued jobs have no archive_path and keep using their historical date path.
+        if ( ! empty( $item['archive_path'] ) ) {
+            $data['archive_path'] = $item['archive_path'];
+        }
+
+        $result = TaranehYar_Http::post_to_dlhost( $item['endpoint_key'], $data );
 
         foreach ( $item['cleanup'] as $file ) {
             if ( is_string( $file ) && $file !== '' && file_exists( $file ) ) {

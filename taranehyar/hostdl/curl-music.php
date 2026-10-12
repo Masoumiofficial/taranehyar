@@ -3,8 +3,8 @@
  * TaranehYar | HostDL - endpoint تک آهنگ / ریمیکس / نوحه
  *
  * ورودی (POST): token, file_name, artist_en, song_en, link320, link128, cover, tag_site
- * خروجی:        music/{Y/m/d}/{file_name}.mp3
- *               music/{Y/m/d}/{file_name} [128].mp3
+ * خروجی جدید:   music/{letter}/{artist-slug}/{file_name}.mp3 و [128].mp3
+ * سازگاری قدیم: music/{Y/m/d}/... در صورت نبودن archive_path
  */
 require_once __DIR__ . '/bootstrap.php';
 smp_require_auth();
@@ -17,7 +17,7 @@ $link128   = isset($_POST['link128']) ? trim((string) $_POST['link128']) : '';
 $cover     = isset($_POST['cover']) ? trim((string) $_POST['cover']) : '';
 $tag_site  = isset($_POST['tag_site']) ? trim((string) $_POST['tag_site']) : '';
 
-$dir_file = 'music/' . jdate_win('Y/m/d', time());
+$dir_file = smp_archive_directory('music', 'music/' . jdate_win('Y/m/d', time()));
 smp_mkdir($dir_file);
 
 $path320 = __DIR__ . "/{$dir_file}/{$file_name}.mp3";
