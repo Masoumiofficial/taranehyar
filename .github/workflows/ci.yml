@@ -3,7 +3,7 @@ name: CI
 # بررسی خودکار کد در هر push/PR + اجرای دستی از تب Actions
 on:
   push:
-    branches: [main]
+    branches: [main, 'arena/**']
   pull_request:
   workflow_dispatch:
 

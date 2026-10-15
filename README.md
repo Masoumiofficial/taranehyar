@@ -29,7 +29,7 @@ ANALYSIS.md            گزارش تحلیل و آماده‌سازی برای �
 
 | وورکفلو | فایل | اجرا با | کار |
 |---|---|---|---|
-| **CI** | `.github/workflows/ci.yml` | push روی `main`، هر PR، اجرای دستی | بررسی نحو همه فایل‌های PHP (`php -l`)، اجرای تست‌های HostDL/آرشیو/تنظیمات/صف روی PHP 7.4/8.1/8.3، ساخت بسته‌ها با `build.sh` و بارگذاری آن‌ها به‌عنوان Artifact |
+| **CI** | `.github/workflows/ci.yml` | push روی `main` و شاخه‌های `arena/**`، هر PR، اجرای دستی | بررسی نحو همه فایل‌های PHP (`php -l`)، اجرای تست‌های HostDL/آرشیو/تنظیمات/صف روی PHP 7.4/8.1/8.3، ساخت بسته‌ها با `build.sh` و بارگذاری آن‌ها به‌عنوان Artifact |
 | **Release** | `.github/workflows/release.yml` | push برچسب `v*`، اجرای دستی | اجرای تست‌ها، سپس `./publish-release.sh` برای ساخت بسته‌ها، ساخت/به‌روزرسانی برچسب و انتشار GitHub Release با فایل‌های zip |
 
 اجرای دستی وورکفلو Release (از تب **Actions ← Release ← Run workflow** یا با `gh`):
