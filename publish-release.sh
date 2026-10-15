@@ -7,8 +7,8 @@
 # ۴) GitHub Release را با فایل‌های zip منتشر می‌کند
 #
 # استفاده:
-#   ./publish-release.sh                 # انتشار همین نسخه (v1.0.0)
-#   ./publish-release.sh 1.0.1           # انتشار یک نسخه مشخص
+#   ./publish-release.sh                 # انتشار همین نسخه (v1.0.3)
+#   ./publish-release.sh 1.0.3           # انتشار یک نسخه مشخص
 #   ./publish-release.sh --target main   # برچسب روی commit دیگری (پیش‌فرض: HEAD)
 #   ./publish-release.sh --draft         # انتشار به‌صورت پیش‌نویس
 #   ./publish-release.sh --dry-run       # فقط بررسی و ساخت بسته‌ها، بدون هیچ انتشار

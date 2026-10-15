@@ -63,6 +63,7 @@ jobs:
           php tests/test-archive.php
           php tests/test-settings.php
           php tests/test-queue.php
+          php tests/test-album-meta.php
 
   build:
     name: ساخت بسته‌های انتشار

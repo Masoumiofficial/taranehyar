@@ -1,6 +1,8 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) exit;
 
+require_once __DIR__ . '/class-ty-album-meta.php';
+
 class TaranehYar_Post_Handler {
 
     /** پسوندهای مجاز برای هر نوع فایل */
@@ -53,7 +55,7 @@ class TaranehYar_Post_Handler {
 
     /** Join an archive path and file name to the configured download host URL. */
     private function download_file_url( $host, $archive_path, $filename ) {
-        return trailingslashit( $host ) . trailingslashit( $archive_path ) . ltrim( $filename, '/' );
+        return TaranehYar_Album_Meta::file_url( $host, $archive_path, $filename );
     }
 
     /** Return the configured singer taxonomy, preserving the historical default. */
@@ -681,7 +683,7 @@ class TaranehYar_Post_Handler {
         wp_set_object_terms( $post_id, $artist, $this->singer_taxonomy() );
         wp_set_post_tags( $post_id, array( 'download new album', 'دانلود آلبوم', 'دانلود آلبوم جدید', $artist, $artist_en ) );
 
-        $tracks_data   = array();
+        $track_entries = array();
         $track_warning = false;
         for ( $i = 1; $i <= 15; $i++ ) {
             $tname = sanitize_text_field( wp_unslash( $_POST["track_name_{$i}"] ?? '' ) );
@@ -693,16 +695,38 @@ class TaranehYar_Post_Handler {
                 if ( is_wp_error( $this->validate_remote_url( $u ) ) ) $track_warning = true;
             }
 
-            $tfile = $this->safe_filename( "{$artist_en} - {$tname}" );
-            $tracks_data[] = array(
-                'title'     => $tname,
-                'al_url320' => $this->download_file_url( $urldlhost, $archive_path, $album_name320 . '/' . $tfile . '.mp3' ),
-                'al_url128' => $this->download_file_url( $urldlhost, $archive_path, $album_name128 . '/' . $tfile . ' [128].mp3' ),
+            $track_entries[] = array(
+                'title' => $tname,
+                'file'  => $this->safe_filename( "{$artist_en} - {$tname}" ),
             );
         }
-        $this->update_mapped_meta( $post_id, 'album', $tracks_data );
+
+        /*
+         * متاهای ساختار قالب (ترانه‌یار 1.0.3):
+         *  - `album`                تعداد ترک‌های واردشده (عدد)
+         *  - `artist` / `song`      نام فارسی خواننده و آلبوم از فرم
+         *  - `musics_type` = album و `plym` = 0
+         *  - برای هر ترک با اندیس صفرمبنا: `album_{i}_song_names`،
+         *    `album_{i}_albumlink128` و `album_{i}_albumlink320` (لینک مقصد فایل‌های HostDL)
+         * آرایهٔ قدیمی ترک‌ها نیز برای سازگاری در `album_dl` نگه‌داری می‌شود.
+         */
+        $built = TaranehYar_Album_Meta::build(
+            $track_entries,
+            $artist,
+            $song,
+            $urldlhost,
+            $archive_path,
+            $album_name
+        );
+
+        $this->update_mapped_meta( $post_id, 'album', $built['album'] );
+        foreach ( $built['meta'] as $meta_key => $meta_value ) {
+            // musics_type has an existing configurable mapping; never bypass it.
+            if ( $meta_key === 'musics_type' ) continue;
+            update_post_meta( $post_id, $meta_key, $meta_value );
+        }
         // Keep the historical field as an alias for themes that already consume it.
-        update_post_meta( $post_id, 'album_dl', $tracks_data );
+        update_post_meta( $post_id, 'album_dl', $built['tracks_data'] );
 
         $warnings = array();
         if ( $track_warning ) $warnings[] = 'برخی لینک‌های ترک‌ها نامعتبر بودند و نادیده گرفته شدند';
