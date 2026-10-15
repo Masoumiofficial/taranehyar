@@ -3,7 +3,7 @@ name: CI
 # بررسی خودکار کد در هر push/PR + اجرای دستی از تب Actions
 on:
   push:
-    branches: [main]
+    branches: [main, 'arena/**']
   pull_request:
   workflow_dispatch:
 
@@ -63,6 +63,7 @@ jobs:
           php tests/test-archive.php
           php tests/test-settings.php
           php tests/test-queue.php
+          php tests/test-album-meta.php
 
   build:
     name: ساخت بسته‌های انتشار
