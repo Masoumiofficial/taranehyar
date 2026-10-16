@@ -3,7 +3,7 @@
  * Plugin Name:       ترانه‌یار | TaranehYar
  * Plugin URI:        https://sajadmasoumi.com
  * Description:       پنل حرفه‌ای ارسال پست موزیک، ریمیکس، نوحه، موزیک ویدیو، آلبوم و لیچ فایل برای سایت‌های موزیک وردپرسی
- * Version:           1.0.6
+ * Version:           1.0.7
  * Author:            سجاد معصومی
  * Author URI:        https://sajadmasoumi.com
  * License:           GPL-2.0-or-later
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'TY_VERSION', '1.0.6' );
+define( 'TY_VERSION', '1.0.7' );
 define( 'TY_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'TY_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 

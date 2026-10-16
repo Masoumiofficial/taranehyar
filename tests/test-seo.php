@@ -5,7 +5,7 @@
  */
 define( 'ABSPATH', __DIR__ . '/' );
 define( 'TY_PLUGIN_URL', 'https://example.test/plugins/taranehyar/' );
-define( 'TY_VERSION', '1.0.6' );
+define( 'TY_VERSION', '1.0.7' );
 $GLOBALS['ty_seo_test_options'] = array();
 $GLOBALS['ty_seo_test_styles'] = array();
 $GLOBALS['ty_seo_test_meta'] = array( 42 => array(
