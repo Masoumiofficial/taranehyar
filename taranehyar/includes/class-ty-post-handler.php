@@ -251,11 +251,16 @@ class TaranehYar_Post_Handler {
     }
 
     /** Render per-type templates from settings with plain text placeholders. */
-    private function seo_profile( $type, array $variables ) {
+    private function seo_profile( $type, array $variables, array $post_overrides = array() ) {
         $overrides = array();
         foreach ( TaranehYar_SEO::TEMPLATE_FIELDS as $field => $label ) {
             $key = TaranehYar_SEO::option_key( $type, $field );
             $overrides[ $field ] = $this->cfg( $key, TaranehYar_SEO::default_template( $type, $field ) );
+        }
+        foreach ( $post_overrides as $field => $template ) {
+            if ( isset( TaranehYar_SEO::TEMPLATE_FIELDS[ $field ] ) && is_string( $template ) ) {
+                $overrides[ $field ] = $template;
+            }
         }
         return TaranehYar_SEO::profile( $type, $variables, $overrides );
     }
@@ -298,7 +303,10 @@ class TaranehYar_Post_Handler {
     private function release_content( $type, array $seo, array $details, $info = '', $lyrics = '', array $credits = array(), array $category = array() ) {
         $content = '<article class="ty-release-content">';
         if ( $seo['intro'] !== '' ) {
-            $content .= '<div class="ty-release-intro">' . wpautop( esc_html( $seo['intro'] ) ) . '</div><!--more-->';
+            $content .= '<div class="ty-release-intro" lang="fa" dir="rtl">' . wpautop( esc_html( $seo['intro'] ) ) . '</div><!--more-->';
+        }
+        if ( ! empty( $seo['intro_en'] ) ) {
+            $content .= '<div class="ty-release-intro ty-release-intro-en" lang="en" dir="ltr">' . wpautop( esc_html( $seo['intro_en'] ) ) . '</div>';
         }
         if ( trim( (string) $info ) !== '' ) {
             $content .= '<section><h2>درباره اثر</h2><p>' . esc_html( $info ) . '</p></section>';
@@ -389,6 +397,8 @@ class TaranehYar_Post_Handler {
         $composer   = sanitize_text_field( wp_unslash( $_POST['melody'] ?? '' ) );
         $regulator  = sanitize_text_field( wp_unslash( $_POST['arrng'] ?? '' ) );
         $mixmaster  = sanitize_text_field( wp_unslash( $_POST['mix'] ?? '' ) );
+        $post_text_fa = sanitize_textarea_field( wp_unslash( $_POST['post_text_fa'] ?? '' ) );
+        $post_text_en = sanitize_textarea_field( wp_unslash( $_POST['post_text_en'] ?? '' ) );
         $is_draft   = sanitize_text_field( $_POST['is_draft'] ?? 'publish' );
 
         if ( empty( $name ) || empty( $track ) || empty( $enname ) || empty( $entrack ) ) {
@@ -412,24 +422,33 @@ class TaranehYar_Post_Handler {
         $quality_sentence = ! empty( $quality_values )
             ? 'کیفیت‌های واردشده: ' . implode( ' و ', $quality_values ) . '.'
             : '';
+        $quality_values_en = array();
+        if ( ! empty( $link320 ) || ! empty( $_FILES['filelink320']['tmp_name'] ) ) $quality_values_en[] = '320 kbps MP3';
+        if ( ! empty( $link128 ) || ! empty( $_FILES['filelink128']['tmp_name'] ) ) $quality_values_en[] = '128 kbps MP3';
+        $quality_sentence_en = ! empty( $quality_values_en ) ? 'Submitted formats: ' . implode( ' and ', $quality_values_en ) . '.' : '';
 
         $seo_site = $this->cfg( 'namesite' );
         if ( $seo_site === '' && function_exists( 'get_bloginfo' ) ) $seo_site = get_bloginfo( 'name' );
         $seo = $this->seo_profile( $seo_type, array(
-            'artist'           => $name,
-            'track'            => $track,
-            'artist_en'        => $enname,
-            'track_en'         => $entrack,
-            'site'             => $seo_site,
-            'qualities'        => implode( ' و ', $quality_values ),
-            'quality_sentence' => $quality_sentence,
-            'info'             => $info,
-            'category'         => $category['name'],
+            'artist'             => $name,
+            'track'              => $track,
+            'artist_en'          => $enname,
+            'track_en'           => $entrack,
+            'site'               => $seo_site,
+            'qualities'          => implode( ' و ', $quality_values ),
+            'quality_sentence'   => $quality_sentence,
+            'quality_sentence_en' => $quality_sentence_en,
+            'info'               => $info,
+            'category'           => $category['name'],
+        ), array(
+            'intro'    => $post_text_fa,
+            'intro_en' => $post_text_en,
         ) );
         foreach ( array( 'post_title', 'title', 'description', 'focus' ) as $seo_field ) {
             $seo[ $seo_field ] = sanitize_text_field( $seo[ $seo_field ] );
         }
         $seo['intro'] = sanitize_textarea_field( $seo['intro'] );
+        $seo['intro_en'] = sanitize_textarea_field( $seo['intro_en'] );
         $title = $seo['post_title'] !== '' ? $seo['post_title'] : "{$type_label} {$name} — {$track}";
         if ( $this->check_duplicate_title( $title ) ) {
             $this->redirect( $redirect_page, 'خطا: پستی با این عنوان قبلاً وجود دارد!', true );
@@ -438,8 +457,9 @@ class TaranehYar_Post_Handler {
         $year   = date( 'Y' ); $months = date( 'm' );
         $uploads_dir = $this->ensure_upload_dir( $year, $months );
 
-        $trackname   = $this->safe_filename( "{$enname} - {$entrack}" );
-        $archive_path = $this->archive_path( 'music', $enname );
+        $trackname    = $this->safe_filename( "{$enname} - {$entrack}" );
+        $archive_root = in_array( $seo_type, array( 'music', 'remix', 'nohe' ), true ) ? $seo_type : 'music';
+        $archive_path = $this->archive_path( $archive_root, $enname );
         $filename320 = $this->download_file_url( $urldlhost, $archive_path, $trackname . '.mp3' );
         $filename128 = $this->download_file_url( $urldlhost, $archive_path, $trackname . ' [128].mp3' );
         $img_url     = trailingslashit( $this->upload_base()['url'] ) . "{$year}/{$months}/{$trackname}.jpg";
@@ -530,6 +550,7 @@ class TaranehYar_Post_Handler {
             'endpoint_key' => $curl_key,
             'archive_path' => $archive_path,
             'data'         => array(
+                'archive_root' => $archive_root,
                 'file_name' => $trackname,
                 'artist_en' => $enname,
                 'song_en'   => $entrack,
@@ -542,7 +563,7 @@ class TaranehYar_Post_Handler {
             'cleanup'      => $cleanup,
         ) );
 
-        $final_msg = $req_msg . ' ⏳ انتقال فایل‌ها به هاست دانلود در صف پس‌زمینه قرار گرفت (وضعیت از کارت «وضعیت انتقال‌ها» قابل پیگیری است).';
+        $final_msg = $req_msg . ' ⏳ انتقال فایل‌ها به هاست دانلود در صف پس‌زمینه قرار گرفت (وضعیت از منوی مستقل «وضعیت انتقال‌ها» قابل پیگیری است).';
         $has_err   = false;
         if ( ! empty( $warnings ) ) {
             $final_msg .= ' ⚠ هشدار: ' . implode( ' | ', $warnings );
@@ -581,6 +602,8 @@ class TaranehYar_Post_Handler {
         $link720  = esc_url_raw( $_POST['link720'] ?? '' );
         $link480  = esc_url_raw( $_POST['link480'] ?? '' );
         $link320  = esc_url_raw( $_POST['link320'] ?? '' );
+        $post_text_fa = sanitize_textarea_field( wp_unslash( $_POST['post_text_fa'] ?? '' ) );
+        $post_text_en = sanitize_textarea_field( wp_unslash( $_POST['post_text_en'] ?? '' ) );
         $is_draft = sanitize_text_field( $_POST['is_draft'] ?? 'publish' );
 
         if ( empty( $name ) || empty( $track ) || empty( $enname ) || empty( $entrack ) ) {
@@ -611,23 +634,34 @@ class TaranehYar_Post_Handler {
         if ( ! empty( $link480 ) ) $quality_values[] = '۴۸۰p';
         if ( ! empty( $link320 ) ) $quality_values[] = 'صوتی';
         $quality_sentence = ! empty( $quality_values ) ? 'کیفیت‌های واردشده: ' . implode( ' و ', $quality_values ) . '.' : '';
+        $quality_values_en = array();
+        if ( ! empty( $link1080 ) ) $quality_values_en[] = '1080p video';
+        if ( ! empty( $link720 ) ) $quality_values_en[] = '720p video';
+        if ( ! empty( $link480 ) ) $quality_values_en[] = '480p video';
+        if ( ! empty( $link320 ) ) $quality_values_en[] = 'MP3 audio';
+        $quality_sentence_en = ! empty( $quality_values_en ) ? 'Submitted formats: ' . implode( ', ', $quality_values_en ) . '.' : '';
         $seo_site = $this->cfg( 'namesite' );
         if ( $seo_site === '' && function_exists( 'get_bloginfo' ) ) $seo_site = get_bloginfo( 'name' );
         $seo = $this->seo_profile( 'video', array(
-            'artist'           => $name,
-            'track'            => $track,
-            'artist_en'        => $enname,
-            'track_en'         => $entrack,
-            'site'             => $seo_site,
-            'qualities'        => implode( ' و ', $quality_values ),
-            'quality_sentence' => $quality_sentence,
-            'info'             => $info,
-            'category'         => $category['name'],
+            'artist'              => $name,
+            'track'               => $track,
+            'artist_en'           => $enname,
+            'track_en'            => $entrack,
+            'site'                => $seo_site,
+            'qualities'           => implode( ' و ', $quality_values ),
+            'quality_sentence'    => $quality_sentence,
+            'quality_sentence_en' => $quality_sentence_en,
+            'info'                => $info,
+            'category'            => $category['name'],
+        ), array(
+            'intro'    => $post_text_fa,
+            'intro_en' => $post_text_en,
         ) );
         foreach ( array( 'post_title', 'title', 'description', 'focus' ) as $seo_field ) {
             $seo[ $seo_field ] = sanitize_text_field( $seo[ $seo_field ] );
         }
         $seo['intro'] = sanitize_textarea_field( $seo['intro'] );
+        $seo['intro_en'] = sanitize_textarea_field( $seo['intro_en'] );
         $title = $seo['post_title'] !== '' ? $seo['post_title'] : "دانلود موزیک ویدیو {$name} به نام {$track}";
         if ( $this->check_duplicate_title( $title ) ) {
             $this->redirect( 'ty-video', 'خطا: پستی با این عنوان قبلاً وجود دارد!', true );
@@ -717,7 +751,7 @@ class TaranehYar_Post_Handler {
             ),
         ) );
 
-        $final_msg = $req_msg . ' ⏳ انتقال فایل‌ها به هاست دانلود در صف پس‌زمینه قرار گرفت (وضعیت از کارت «وضعیت انتقال‌ها» قابل پیگیری است).';
+        $final_msg = $req_msg . ' ⏳ انتقال فایل‌ها به هاست دانلود در صف پس‌زمینه قرار گرفت (وضعیت از منوی مستقل «وضعیت انتقال‌ها» قابل پیگیری است).';
         $has_err   = false;
         if ( ! empty( $warnings ) ) {
             $final_msg .= ' ⚠ هشدار: ' . implode( ' | ', $warnings );
@@ -741,6 +775,8 @@ class TaranehYar_Post_Handler {
         $cover     = esc_url_raw( $_POST['cover'] ?? '' );
         $info      = sanitize_text_field( wp_unslash( $_POST['info'] ?? '' ) );
         $cover_mp3 = esc_url_raw( $_POST['cover_mp3'] ?? '' );
+        $post_text_fa = sanitize_textarea_field( wp_unslash( $_POST['post_text_fa'] ?? '' ) );
+        $post_text_en = sanitize_textarea_field( wp_unslash( $_POST['post_text_en'] ?? '' ) );
         $is_draft  = sanitize_text_field( $_POST['is_draft'] ?? 'publish' );
 
         if ( empty( $artist ) || empty( $song ) || empty( $artist_en ) || empty( $song_en ) ) {
@@ -805,15 +841,21 @@ class TaranehYar_Post_Handler {
             'track_en'         => $song_en,
             'site'             => $seo_site,
             'track_count'      => (string) $built['album'],
-            'qualities'        => '۱۲۸ و ۳۲۰',
-            'quality_sentence' => 'لینک دریافت یکجای آلبوم در کیفیت‌های موجود در این صفحه قرار دارد.',
-            'info'             => $info,
-            'category'         => $category['name'],
+            'track_count_en'   => (string) $built['album'],
+            'qualities'            => '',
+            'quality_sentence'   => '',
+            'quality_sentence_en' => '',
+            'info'               => $info,
+            'category'           => $category['name'],
+        ), array(
+            'intro'    => $post_text_fa,
+            'intro_en' => $post_text_en,
         ) );
         foreach ( array( 'post_title', 'title', 'description', 'focus' ) as $seo_field ) {
             $seo[ $seo_field ] = sanitize_text_field( $seo[ $seo_field ] );
         }
         $seo['intro'] = sanitize_textarea_field( $seo['intro'] );
+        $seo['intro_en'] = sanitize_textarea_field( $seo['intro_en'] );
         $title = $seo['post_title'] !== '' ? $seo['post_title'] : "دانلود آلبوم {$artist} به نام {$song}";
         if ( $this->check_duplicate_title( $title ) ) {
             $this->redirect( 'ty-album', 'خطا: پستی با این عنوان قبلاً وجود دارد!', true );
@@ -928,7 +970,7 @@ class TaranehYar_Post_Handler {
             'data'         => $curl_data,
         ) );
 
-        $final_msg = $req_msg . ' ⏳ انتقال فایل‌ها به هاست دانلود در صف پس‌زمینه قرار گرفت (وضعیت از کارت «وضعیت انتقال‌ها» قابل پیگیری است).';
+        $final_msg = $req_msg . ' ⏳ انتقال فایل‌ها به هاست دانلود در صف پس‌زمینه قرار گرفت (وضعیت از منوی مستقل «وضعیت انتقال‌ها» قابل پیگیری است).';
         $has_err   = false;
         if ( ! empty( $warnings ) ) {
             $final_msg .= ' ⚠ هشدار: ' . implode( ' | ', $warnings );
@@ -998,7 +1040,7 @@ class TaranehYar_Post_Handler {
             'cleanup'      => $cleanup,
         ) );
 
-        $final_msg = 'درخواست لیچ ثبت شد و در صف پس‌زمینه قرار گرفت (وضعیت از کارت «وضعیت انتقال‌ها» قابل پیگیری است).';
+        $final_msg = 'درخواست لیچ ثبت شد و در صف پس‌زمینه قرار گرفت (وضعیت از منوی مستقل «وضعیت انتقال‌ها» قابل پیگیری است).';
         $has_err   = false;
         if ( ! empty( $warnings ) ) {
             $final_msg .= ' ⚠ مشکلاتی پیش آمد: ' . implode( ' | ', $warnings );

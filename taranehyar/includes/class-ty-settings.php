@@ -39,7 +39,8 @@ class TaranehYar_Settings {
         'seo_post_title_remix','seo_title_remix','seo_description_remix','seo_intro_remix','seo_focus_remix',
         'seo_post_title_nohe','seo_title_nohe','seo_description_nohe','seo_intro_nohe','seo_focus_nohe',
         'seo_post_title_video','seo_title_video','seo_description_video','seo_intro_video','seo_focus_video',
-        'seo_post_title_album','seo_title_album','seo_description_album','seo_intro_album','seo_focus_album',
+        'seo_post_title_album','seo_title_album','seo_description_album','seo_intro_album','seo_intro_en_album','seo_focus_album',
+        'seo_intro_en_music','seo_intro_en_remix','seo_intro_en_nohe','seo_intro_en_video',
     );
 
     public function init() {
@@ -62,6 +63,10 @@ class TaranehYar_Settings {
         $clean = array();
         foreach ( self::ALL_KEYS as $k ) {
             $value = isset( $input[ $k ] ) && is_scalar( $input[ $k ] ) ? (string) $input[ $k ] : '';
+            if ( $k === 'apitoken' && $value === '' ) {
+                $clean[ $k ] = self::get( 'apitoken' );
+                continue;
+            }
             if ( in_array( $k, array( 'seo_title_tag_enabled', 'seo_meta_description_enabled', 'seo_jsonld_enabled', 'seo_category_links_enabled', 'seo_visible_details_enabled', 'seo_include_lyrics', 'seo_album_tracklist_enabled' ), true ) ) {
                 $clean[ $k ] = $value === '1' ? '1' : '0';
             } elseif ( $k === 'singer_taxonomy' || strpos( $k, 'meta_key_' ) === 0 ) {
@@ -77,9 +82,15 @@ class TaranehYar_Settings {
 
     private function row( $opts, $key, $label, $placeholder = '', $default_value = '' ) {
         $value = isset( $opts[ $key ] ) && $opts[ $key ] !== '' ? $opts[ $key ] : $default_value;
-        $val = esc_attr( $value );
-        $class = strpos( $key, 'seo_' ) === 0 ? ' class="ty-seo-template"' : '';
-        echo '<tr><th>' . esc_html( $label ) . '</th><td><input type="text"' . $class . ' name="ty_options[' . esc_attr( $key ) . ']" value="' . $val . '" placeholder="' . esc_attr( $placeholder ) . '"></td></tr>';
+        $id = 'ty-setting-' . $key;
+        $type = $key === 'apitoken' ? 'password' : 'text';
+        $class = strpos( $key, 'seo_' ) === 0 ? 'ty-seo-template' : 'ty-setting-input' . ( $key === 'namesite' ? ' ty-setting-rtl' : ' ty-setting-ltr' );
+        $autocomplete = $key === 'apitoken' ? ' autocomplete="new-password"' : '';
+        if ( $key === 'apitoken' ) {
+            $value = '';
+            $placeholder = 'برای حفظ توکن فعلی خالی بگذارید؛ برای تعویض، توکن جدید وارد کنید';
+        }
+        echo '<tr><th><label for="' . esc_attr( $id ) . '">' . esc_html( $label ) . '</label></th><td><input id="' . esc_attr( $id ) . '" type="' . esc_attr( $type ) . '" class="' . esc_attr( $class ) . '" name="ty_options[' . esc_attr( $key ) . ']" value="' . esc_attr( $value ) . '" placeholder="' . esc_attr( $placeholder ) . '"' . $autocomplete . '></td></tr>';
     }
 
     private function textarea_row( $opts, $key, $label, $placeholder = '', $default_value = '' ) {
@@ -95,21 +106,25 @@ class TaranehYar_Settings {
     public function render_settings_page() {
         $opts = get_option( 'ty_options', array() );
         ?>
-        <div class="ty-wrap" dir="rtl" data-theme="dark">
+        <div class="ty-wrap" dir="rtl" data-theme="light">
             <div class="ty-header">
                 <div class="ty-header-icon">⚙️</div>
-                <div class="ty-header-text"><h1>تنظیمات افزونه</h1><p>پیکربندی هاست دانلود، دسته‌بندی‌ها و اطلاعات سایت</p></div>
-                <div class="ty-theme-toggle" id="ty-theme-toggle" title="تغییر حالت روز/شب">
+                <div class="ty-header-text"><h1>تنظیمات افزونه</h1><p>اتصال هاست، دسته‌بندی‌ها، متادیتای قالب و الگوهای محتوای پست</p></div>
+                <button type="button" class="ty-theme-toggle" id="ty-theme-toggle" title="تغییر حالت روز/شب" aria-label="تغییر حالت روز/شب">
                     <span class="ty-theme-icon-light">☀️</span>
                     <span class="ty-theme-icon-dark">🌙</span>
-                </div>
+                </button>
             </div>
 
             <?php
             $tabs = array(
-                'ty-dashboard' => '🎵 تک آهنگ', 'ty-remix' => '🎛️ ریمیکس', 'ty-nohe' => '🕌 نوحه',
-                'ty-video' => '🎬 موزیک ویدیو', 'ty-album' => '💿 آلبوم', 'ty-leech' => '⬇️ لیچ', 'ty-settings' => '⚙️ تنظیمات',
+                'ty-dashboard' => '🎵 تک‌آهنگ', 'ty-remix' => '🎛️ ریمیکس', 'ty-nohe' => '🕌 نوحه',
+                'ty-video' => '🎬 موزیک‌ویدیو', 'ty-album' => '💿 آلبوم', 'ty-leech' => '⬇️ لیچ',
             );
+            if ( current_user_can( 'manage_options' ) ) {
+                $tabs['ty-transfers'] = '📡 وضعیت انتقال‌ها';
+                $tabs['ty-settings'] = '⚙️ تنظیمات';
+            }
             echo '<div class="ty-tabs">';
             foreach ( $tabs as $slug => $label ) {
                 $cls = ( $slug === 'ty-settings' ) ? 'ty-tab active' : 'ty-tab';
@@ -122,95 +137,116 @@ class TaranehYar_Settings {
             }
             ?>
 
-            <form method="post" action="options.php">
+            <nav class="ty-settings-shortcuts" aria-label="بخش‌های تنظیمات">
+                <a href="#ty-settings-host">اتصال هاست</a>
+                <a href="#ty-settings-site">اطلاعات سایت</a>
+                <a href="#ty-settings-categories">دسته‌بندی‌ها</a>
+                <a href="#ty-settings-meta">متادیتای قالب</a>
+                <a href="#ty-settings-seo">SEO / GEO / AIO</a>
+            </nav>
+
+            <form method="post" action="options.php" class="ty-settings-form">
                 <?php settings_fields( 'ty_options_group' ); ?>
 
-                <div class="ty-card">
-                    <div class="ty-card-title">🌐 هاست دانلود</div>
-                    <table class="ty-settings-table">
-                        <?php
-                        $this->row( $opts, 'urldlhost', 'آدرس هاست دانلود', 'https://dl.example.ir' );
-                        $this->row( $opts, 'urlfunction_music', 'آدرس curl-music.php', 'https://dl.example.ir/curl-music.php' );
-                        $this->row( $opts, 'urlfunction_remix', 'آدرس curl-music.php (ریمیکس)', 'https://dl.example.ir/curl-music.php' );
-                        $this->row( $opts, 'urlfunction_video', 'آدرس curl-video.php', 'https://dl.example.ir/curl-video.php' );
-                        $this->row( $opts, 'urlfunction_album', 'آدرس curl-album.php', 'https://dl.example.ir/curl-album.php' );
-                        $this->row( $opts, 'urlfunction_nohe',  'آدرس curl-music.php (نوحه)',  'https://dl.example.ir/curl-music.php' );
-                        $this->row( $opts, 'urlfunction_leech', 'آدرس curl-leech.php', 'https://dl.example.ir/curl-leech.php' );
-                        $this->row( $opts, 'apitoken', 'توکن امنیتی (مشابه فایل config.php هاست دانلود)', 'یک رشته تصادفی طولانی' );
-                        ?>
-                    </table>
-                    <p class="ty-hint">💡 تک آهنگ، ریمیکس و نوحه همگی از <code>curl-music.php</code> استفاده می‌کنند. توکن امنیتی باید دقیقاً با مقدار <code>$smp_token</code> در فایل <code>config.php</code> روی هاست دانلود یکسان باشد؛ در غیر این صورت درخواست‌ها پذیرفته نمی‌شوند.</p>
-                </div>
-
-                <div class="ty-card">
-                    <div class="ty-card-title">🏷️ اطلاعات سایت</div>
-                    <table class="ty-settings-table">
-                        <?php
-                        $this->row( $opts, 'namesite',  'نام سایت (فارسی)' );
-                        $this->row( $opts, 'namesite2', 'نام سایت (انگلیسی)' );
-                        $this->row( $opts, 'urlsite',   'دامنه سایت (بدون https://)', 'example.ir' );
-                        ?>
-                    </table>
-                </div>
-
-                <div class="ty-card">
-                    <div class="ty-card-title">🔎 سئو، GEO و AIO</div>
-                    <p class="ty-hint">عنوان نوشته، عنوان SEO، توضیحات متا، متن آغازین و عبارت کانونی برای هر نوع محتوا جداگانه قابل تنظیم است. الگوها فقط روی پست‌های جدید اثر دارند؛ تنظیمات سراسری تغییر نمی‌کنند و در Yoast، Rank Math و SEOPress فقط متادیتای همان پست مقداردهی می‌شود. جای‌نگهدارها: <code>{artist}</code>، <code>{track}</code>، <code>{album}</code>، <code>{artist_en}</code>، <code>{track_en}</code>، <code>{album_en}</code>، <code>{site}</code>، <code>{qualities}</code>، <code>{quality_sentence}</code>، <code>{track_count}</code> و <code>{info}</code>. جای‌نگهدار نامرتبط با نوع محتوا خالی جایگزین می‌شود.</p>
-                    <table class="ty-settings-table">
-                        <?php
-                        $this->checkbox_row( $opts, 'seo_title_tag_enabled', 'استفاده از عنوان SEO در تگ title (فقط در نبود افزونهٔ SEO شناخته‌شده)' );
-                        $this->checkbox_row( $opts, 'seo_meta_description_enabled', 'متای توضیحات پایه (فقط در نبود افزونهٔ SEO شناخته‌شده)' );
-                        $this->checkbox_row( $opts, 'seo_jsonld_enabled', 'خروجی Schema.org برای موزیک، آلبوم و ویدیو' );
-                        $this->checkbox_row( $opts, 'seo_category_links_enabled', 'پیوند داخلی به دسته‌بندی مرتبط در متن پست' );
-                        $this->checkbox_row( $opts, 'seo_visible_details_enabled', 'نمایش مشخصات ساخت‌یافتهٔ اثر و عوامل' );
-                        $this->checkbox_row( $opts, 'seo_include_lyrics', 'نمایش متن ترانه در متن پست (اگر وارد شده باشد)' );
-                        $this->checkbox_row( $opts, 'seo_album_tracklist_enabled', 'نمایش فهرست ترک و لینک‌های ۱۲۸/۳۲۰ در متن آلبوم' );
-                        ?>
-                    </table>
-                    <?php foreach ( TaranehYar_SEO::CONTENT_TYPES as $seo_type => $seo_type_label ) : ?>
-                        <h3><?php echo esc_html( $seo_type_label ); ?></h3>
+                <details class="ty-settings-group" id="ty-settings-host" open>
+                    <summary><span>🌐 اتصال هاست دانلود</span><small>دامنه، endpointها و توکن</small></summary>
+                    <div class="ty-settings-group-body">
                         <table class="ty-settings-table">
-                            <?php foreach ( TaranehYar_SEO::TEMPLATE_FIELDS as $field => $field_label ) :
-                                $option_key = TaranehYar_SEO::option_key( $seo_type, $field );
-                                $default_template = TaranehYar_SEO::default_template( $seo_type, $field );
-                                if ( $field === 'intro' ) {
-                                    $this->textarea_row( $opts, $option_key, $field_label, $default_template, $default_template );
-                                } else {
-                                    $this->row( $opts, $option_key, $field_label, $default_template, $default_template );
-                                }
-                            endforeach; ?>
+                            <?php
+                            $this->row( $opts, 'urldlhost', 'آدرس پایهٔ هاست دانلود', 'https://dl.example.ir' );
+                            $this->row( $opts, 'urlfunction_music', 'Endpoint تک‌آهنگ (curl-music.php)', 'https://dl.example.ir/curl-music.php' );
+                            $this->row( $opts, 'urlfunction_remix', 'Endpoint ریمیکس (curl-music.php)', 'https://dl.example.ir/curl-music.php' );
+                            $this->row( $opts, 'urlfunction_nohe', 'Endpoint نوحه/مداحی (curl-music.php)', 'https://dl.example.ir/curl-music.php' );
+                            $this->row( $opts, 'urlfunction_video', 'Endpoint موزیک‌ویدیو (curl-video.php)', 'https://dl.example.ir/curl-video.php' );
+                            $this->row( $opts, 'urlfunction_album', 'Endpoint آلبوم (curl-album.php)', 'https://dl.example.ir/curl-album.php' );
+                            $this->row( $opts, 'urlfunction_leech', 'Endpoint لیچ (curl-leech.php)', 'https://dl.example.ir/curl-leech.php' );
+                            $this->row( $opts, 'apitoken', 'توکن اتصال به HostDL', 'برای حفظ توکن فعلی، خالی بگذارید' );
+                            ?>
                         </table>
-                    <?php endforeach; ?>
-                    <p class="ty-hint">این ابزارها محتوای یکتا و دادهٔ معنایی تولید می‌کنند؛ جایگزین محتوای واقعی یا تضمین رتبه نیستند. قالب HTML از ورودی‌های کاربر ساخته و escape می‌شود.</p>
-                </div>
+                        <p class="ty-hint">ریمیکس و نوحه با پارامتر امن <code>archive_root</code> به پوشه‌های مستقل <code>remix/{letter}/{artist}</code> و <code>nohe/{letter}/{artist}</code> می‌روند؛ تک‌آهنگ همچنان در <code>music/{letter}/{artist}</code> ذخیره می‌شود. برای فعال‌شدن مسیرهای جدید، بستهٔ HostDL نسخهٔ جدید را نیز روی هاست دانلود به‌روزرسانی کنید. درخواست‌های قدیمی همچنان مسیر تاریخ‌محور خود را حفظ می‌کنند.</p>
+                        <p class="ty-hint">مقدار توکن در این صفحه نمایش داده نمی‌شود. توکن افزونه باید با <code>$smp_token</code> در <code>config.php</code> هاست دانلود یکسان باشد؛ خالی‌گذاشتن این فیلد، توکن ذخیره‌شده را حفظ می‌کند.</p>
+                    </div>
+                </details>
 
-                <div class="ty-card">
-                    <div class="ty-card-title">🧩 سازگاری با قالب (کلیدهای متا و تکسونومی)</div>
-                    <table class="ty-settings-table">
-                        <?php
-                        $this->row( $opts, 'singer_taxonomy', 'تکسونومی خواننده', 'singer', 'singer' );
-                        foreach ( self::META_KEY_DEFAULTS as $meta_key => $default_key ) {
-                            $option_key = 'meta_key_' . $meta_key;
-                            $this->row( $opts, $option_key, 'کلید متای ' . $meta_key, $default_key, $default_key );
-                        }
-                        ?>
-                    </table>
-                    <p class="ty-hint">💡 کلیدهای پیش‌فرض با نام‌های رایج قالب‌های موزیک تنظیم شده‌اند. در متادیتای آلبوم، کلید <code>album</code> (یا کلید سفارشی تنظیم‌شده در همین بخش) <strong>تعداد ترک‌ها به‌صورت عدد</strong> است؛ آرایهٔ قدیمی ترک‌ها برای سازگاری در <code>album_dl</code> ذخیره می‌شود. مشخصات هر ترک از اندیس یک‌مبنا، یعنی <code>album_1_song_names</code>، <code>album_1_albumlink128</code> و <code>album_1_albumlink320</code> تا حداکثر ترک ۱۵ نوشته می‌شود. در صورت نیاز، نام کلیدهای متا و تکسونومی خواننده را با قالب خود هماهنگ کنید.</p>
-                </div>
+                <details class="ty-settings-group" id="ty-settings-site">
+                    <summary><span>🏷️ اطلاعات سایت</span><small>نام و دامنه برای متن‌ها و برچسب‌گذاری فایل‌ها</small></summary>
+                    <div class="ty-settings-group-body">
+                        <table class="ty-settings-table">
+                            <?php
+                            $this->row( $opts, 'namesite', 'نام سایت (فارسی)' );
+                            $this->row( $opts, 'namesite2', 'نام سایت (انگلیسی)' );
+                            $this->row( $opts, 'urlsite', 'دامنهٔ سایت (بدون https://)', 'example.ir' );
+                            ?>
+                        </table>
+                    </div>
+                </details>
 
-                <div class="ty-card">
-                    <div class="ty-card-title">📁 دسته‌بندی‌ها (Category ID)</div>
-                    <table class="ty-settings-table">
-                        <?php
-                        $this->row( $opts, 'cat_music', 'دسته‌بندی تک آهنگ', 'مثال: 10,12' );
-                        $this->row( $opts, 'cat_remix', 'دسته‌بندی ریمیکس', 'مثال: 10,13' );
-                        $this->row( $opts, 'cat_nohe',  'دسته‌بندی نوحه',   'مثال: 10,14' );
-                        $this->row( $opts, 'cat_video', 'دسته‌بندی موزیک ویدیو', 'مثال: 10,15' );
-                        $this->row( $opts, 'cat_album', 'دسته‌بندی آلبوم', 'مثال: 5431,2' );
-                        ?>
-                    </table>
-                    <p class="ty-hint">💡 شناسه دسته‌ها را از منوی «نوشته‌ها ← دسته‌ها» بردارید؛ چند شناسه را با ویرگول جدا کنید.</p>
-                </div>
+                <details class="ty-settings-group" id="ty-settings-categories">
+                    <summary><span>📁 دسته‌بندی‌ها</span><small>شناسه‌های WordPress، از والد به دستهٔ اختصاصی</small></summary>
+                    <div class="ty-settings-group-body">
+                        <table class="ty-settings-table">
+                            <?php
+                            $this->row( $opts, 'cat_music', 'دسته‌بندی تک‌آهنگ', 'مثال: 10,12' );
+                            $this->row( $opts, 'cat_remix', 'دسته‌بندی ریمیکس', 'مثال: 10,13' );
+                            $this->row( $opts, 'cat_nohe', 'دسته‌بندی نوحه/مداحی', 'مثال: 10,14' );
+                            $this->row( $opts, 'cat_video', 'دسته‌بندی موزیک‌ویدیو', 'مثال: 10,15' );
+                            $this->row( $opts, 'cat_album', 'دسته‌بندی آلبوم', 'مثال: 5431,2' );
+                            ?>
+                        </table>
+                        <p class="ty-hint">شناسه‌ها را از «نوشته‌ها ← دسته‌ها» بردارید؛ چند شناسه را با ویرگول جدا کنید. آخرین شناسه به‌عنوان دستهٔ اختصاصی برای پیوند داخلی انتخاب می‌شود.</p>
+                    </div>
+                </details>
+
+                <details class="ty-settings-group" id="ty-settings-meta">
+                    <summary><span>🧩 سازگاری با قالب</span><small>کلیدهای متا و تکسونومی خواننده</small></summary>
+                    <div class="ty-settings-group-body">
+                        <table class="ty-settings-table">
+                            <?php
+                            $this->row( $opts, 'singer_taxonomy', 'تکسونومی خواننده', 'singer', 'singer' );
+                            foreach ( self::META_KEY_DEFAULTS as $meta_key => $default_key ) {
+                                $option_key = 'meta_key_' . $meta_key;
+                                $this->row( $opts, $option_key, 'کلید متای ' . $meta_key, $default_key, $default_key );
+                            }
+                            ?>
+                        </table>
+                        <p class="ty-hint">کلید پیش‌فرض <code>album</code> تعداد ترک‌هاست؛ آرایهٔ قدیمی <code>album_dl</code> حفظ می‌شود. کلیدهای هر ترک یک‌مبنا هستند، مانند <code>album_1_song_names</code>، <code>album_1_albumlink128</code> و <code>album_1_albumlink320</code> تا حداکثر ۱۵ ترک.</p>
+                    </div>
+                </details>
+
+                <details class="ty-settings-group" id="ty-settings-seo">
+                    <summary><span>🔎 سئو، GEO و AIO</span><small>قواعد نوشته، متادیتا، نمایش اطلاعات و Schema</small></summary>
+                    <div class="ty-settings-group-body">
+                        <p class="ty-hint">پیش‌فرض‌های فارسی و انگلیسی برای هر نوع محتوا دقیق و قابل ویرایش‌اند. متغیرهایی مثل <code>{artist}</code> و <code>{track_en}</code> هنگام ساخت پست با اطلاعات واقعی جایگزین می‌شوند؛ متغیر نامرتبط خالی می‌شود. قالب‌های سئو فقط روی پست‌های جدید اعمال می‌شوند و تنظیمات سراسری افزونه‌های SEO را تغییر نمی‌دهند.</p>
+                        <table class="ty-settings-table">
+                            <?php
+                            $this->checkbox_row( $opts, 'seo_title_tag_enabled', 'عنوان تگ title (فقط اگر افزونهٔ SEO شناخته‌شده فعال نیست)' );
+                            $this->checkbox_row( $opts, 'seo_meta_description_enabled', 'متای توضیحات پایه (فقط اگر افزونهٔ SEO شناخته‌شده فعال نیست)' );
+                            $this->checkbox_row( $opts, 'seo_jsonld_enabled', 'Schema.org برای موزیک، آلبوم و ویدیو' );
+                            $this->checkbox_row( $opts, 'seo_category_links_enabled', 'پیوند داخلی به دستهٔ مرتبط' );
+                            $this->checkbox_row( $opts, 'seo_visible_details_enabled', 'نمایش مشخصات اثر و عوامل' );
+                            $this->checkbox_row( $opts, 'seo_include_lyrics', 'نمایش متن ترانه/نوحه در پست' );
+                            $this->checkbox_row( $opts, 'seo_album_tracklist_enabled', 'نمایش فهرست ترک آلبوم' );
+                            ?>
+                        </table>
+                        <?php foreach ( TaranehYar_SEO::CONTENT_TYPES as $seo_type => $seo_type_label ) : ?>
+                            <details class="ty-seo-type-group" <?php echo $seo_type === 'music' ? 'open' : ''; ?>>
+                                <summary><?php echo esc_html( $seo_type_label ); ?></summary>
+                                <table class="ty-settings-table">
+                                    <?php foreach ( TaranehYar_SEO::TEMPLATE_FIELDS as $field => $field_label ) :
+                                        $option_key = TaranehYar_SEO::option_key( $seo_type, $field );
+                                        $default_template = TaranehYar_SEO::default_template( $seo_type, $field );
+                                        if ( in_array( $field, array( 'intro', 'intro_en' ), true ) ) {
+                                            $this->textarea_row( $opts, $option_key, $field_label, $default_template, $default_template );
+                                        } else {
+                                            $this->row( $opts, $option_key, $field_label, $default_template, $default_template );
+                                        }
+                                    endforeach; ?>
+                                </table>
+                            </details>
+                        <?php endforeach; ?>
+                        <p class="ty-hint">این ابزارها محتوای دقیق و دادهٔ معنایی مکمل تولید می‌کنند؛ جایگزین محتوای واقعی یا تضمین رتبه نیستند.</p>
+                    </div>
+                </details>
 
                 <div class="ty-submit-row">
                     <?php submit_button( '💾 ذخیره تنظیمات', 'primary', 'submit', false, array( 'class' => 'ty-btn ty-btn-primary' ) ); ?>

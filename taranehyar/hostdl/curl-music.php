@@ -3,8 +3,8 @@
  * TaranehYar | HostDL - endpoint تک آهنگ / ریمیکس / نوحه
  *
  * ورودی (POST): token, file_name, artist_en, song_en, link320, link128, cover, tag_site
- * خروجی جدید:   music/{letter}/{artist-slug}/{file_name}.mp3 و [128].mp3
- * سازگاری قدیم: music/{Y/m/d}/... در صورت نبودن archive_path
+ * خروجی جدید:   {music|remix|nohe}/{letter}/{artist-slug}/{file_name}.mp3 و [128].mp3
+ * سازگاری قدیم: music/{Y/m/d}/... برای درخواست‌های بدون archive_path/archive_root
  */
 require_once __DIR__ . '/bootstrap.php';
 smp_require_auth();
@@ -17,7 +17,16 @@ $link128   = isset($_POST['link128']) ? trim((string) $_POST['link128']) : '';
 $cover     = isset($_POST['cover']) ? trim((string) $_POST['cover']) : '';
 $tag_site  = isset($_POST['tag_site']) ? trim((string) $_POST['tag_site']) : '';
 
-$dir_file = smp_archive_directory('music', 'music/' . jdate_win('Y/m/d', time()));
+$archive_root = isset($_POST['archive_root']) ? trim((string) $_POST['archive_root']) : 'music';
+$music_roots  = array('music', 'remix', 'nohe');
+if (!in_array($archive_root, $music_roots, true)) {
+    http_response_code(400);
+    exit('Invalid archive_root');
+}
+
+// Requests from older plugin versions still land in the historical music date folder.
+$legacy_root = $archive_root === 'music' ? 'music' : $archive_root;
+$dir_file = smp_archive_directory($archive_root, $legacy_root . '/' . jdate_win('Y/m/d', time()));
 smp_mkdir($dir_file);
 
 $path320 = __DIR__ . "/{$dir_file}/{$file_name}.mp3";

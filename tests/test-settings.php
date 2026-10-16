@@ -48,9 +48,15 @@ $clean = $settings->sanitize(array(
 settings_ok($clean['meta_key_artist_en'] === 'artistencustom', 'metadata setting is sanitized as a key');
 settings_ok($clean['singer_taxonomy'] === 'singertype', 'taxonomy setting is sanitized as a key');
 
+$GLOBALS['ty_test_options']['ty_options']['apitoken'] = 'test-token-not-real';
+$token_clean = $settings->sanitize(array('apitoken' => ''));
+settings_ok($token_clean['apitoken'] === 'test-token-not-real', 'blank token field preserves the saved HostDL token');
+
 $seo_clean = $settings->sanitize(array(
     'seo_title_remix' => 'دانلود ریمیکس {track} از {artist}',
     'seo_intro_nohe' => "متن نوحه\nبا جزئیات",
+    'seo_intro_en_remix' => "Download the remix {track_en}\nby {artist_en}.",
+
     'seo_title_tag_enabled' => '1',
     'seo_meta_description_enabled' => '1',
     'seo_jsonld_enabled' => '1',
@@ -58,11 +64,16 @@ $seo_clean = $settings->sanitize(array(
 ));
 settings_ok($seo_clean['seo_title_remix'] === 'دانلود ریمیکس {track} از {artist}', 'SEO templates retain supported placeholders');
 settings_ok($seo_clean['seo_intro_nohe'] === "متن نوحه\nبا جزئیات", 'intro templates keep multiline text safely');
+settings_ok($seo_clean['seo_intro_en_remix'] === "Download the remix {track_en}\nby {artist_en}.", 'English post templates are sanitized and preserve placeholders');
 settings_ok($seo_clean['seo_title_tag_enabled'] === '1', 'document title fallback toggle accepts enabled state');
 settings_ok($seo_clean['seo_meta_description_enabled'] === '1', 'base description meta toggle accepts enabled state');
 settings_ok($seo_clean['seo_jsonld_enabled'] === '1', 'JSON-LD toggle accepts enabled state');
 settings_ok($seo_clean['seo_album_tracklist_enabled'] === '0', 'invalid checkbox values sanitize to disabled');
 settings_ok(isset($seo_clean['seo_title_music'], $seo_clean['seo_description_album']), 'SEO template settings are registered for all content groups');
+$english_intro_keys = array('seo_intro_en_music', 'seo_intro_en_remix', 'seo_intro_en_nohe', 'seo_intro_en_video', 'seo_intro_en_album');
+$english_intro_registered = true;
+foreach ($english_intro_keys as $english_intro_key) { if (!in_array($english_intro_key, TaranehYar_Settings::ALL_KEYS, true)) $english_intro_registered = false; }
+settings_ok($english_intro_registered, 'English introduction templates are saved for every content type');
 
 echo $fails === 0 ? "\nALL TESTS PASSED\n" : "\n$fails TEST(S) FAILED\n";
 exit($fails === 0 ? 0 : 1);

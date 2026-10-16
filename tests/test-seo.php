@@ -59,6 +59,8 @@ $vars = array(
     'site' => 'سایت نمونه',
     'qualities' => '۱۲۸ و ۳۲۰',
     'quality_sentence' => 'فایل صوتی در دسترس است.',
+    'quality_sentence_en' => 'Submitted formats: 320 kbps and 128 kbps MP3.',
+    'track_count_en' => '5',
     'track_count' => '۵',
     'info' => 'اطلاعات اثر',
 );
@@ -67,6 +69,7 @@ $music = TaranehYar_SEO::profile( 'music', $vars );
 $remix = TaranehYar_SEO::profile( 'remix', $vars );
 $nohe = TaranehYar_SEO::profile( 'nohe', $vars );
 $album = TaranehYar_SEO::profile( 'album', $vars );
+$video = TaranehYar_SEO::profile( 'video', $vars );
 
 seo_ok( strpos( $music['post_title'], 'دانلود آهنگ' ) !== false, 'single-track title uses the song phrase' );
 seo_ok( strpos( $remix['post_title'], 'دانلود ریمیکس' ) !== false, 'remix title uses the remix phrase' );
@@ -74,7 +77,13 @@ seo_ok( strpos( $remix['description'], 'دانلود ریمیکس' ) !== false &
 seo_ok( strpos( $remix['focus'], 'دانلود ریمیکس' ) !== false, 'remix focus phrase is type-specific' );
 seo_ok( strpos( $nohe['title'], 'دانلود نوحه و مداحی' ) !== false, 'nohe SEO title uses the devotional phrase' );
 seo_ok( strpos( $nohe['description'], 'دانلود نوحه و مداحی' ) !== false, 'nohe description uses the devotional phrase' );
+seo_ok( stripos( $remix['intro_en'], 'remix' ) !== false && strpos( $remix['intro_en'], 'Test Track' ) !== false, 'remix gets a precise English post introduction' );
+seo_ok( stripos( $nohe['intro_en'], 'devotional recitation' ) !== false && strpos( $nohe['intro_en'], 'Test Artist' ) !== false, 'nohe gets a precise English devotional introduction' );
+seo_ok( strpos( $video['intro_en'], 'Music video:' ) === 0 && strpos( $video['intro_en'], 'Test Track' ) !== false, 'video gets an English introduction with its real title' );
+seo_ok( strpos( $album['intro_en'], 'Album entry:' ) === 0 && strpos( $album['intro_en'], 'Track count: 5' ) !== false, 'album English introduction uses the submitted album and numeric track count' );
+seo_ok( strpos( $remix['intro_en'], 'Available' ) === false && strpos( $remix['intro_en'], 'Submitted formats:' ) !== false, 'English post copy describes provided formats without claiming successful availability' );
 seo_ok( strpos( $album['post_title'], 'دانلود آلبوم' ) !== false && strpos( $album['description'], '۵ قطعه' ) !== false, 'album template uses album name and track count' );
+seo_ok( strpos( $album['description'], 'لینک' ) === false && strpos( $album['description'], 'دانلود' ) === false, 'album description avoids claiming download availability before HostDL completes' );
 seo_ok( strpos( $remix['title'], '{artist}' ) === false && strpos( $remix['title'], '{track}' ) === false, 'known placeholders are fully substituted' );
 $unused = TaranehYar_SEO::profile( 'music', array( 'artist' => 'خواننده' ), array( 'title' => '{album} {track_count} {artist}' ) );
 seo_ok( strpos( $unused['title'], '{album}' ) === false && strpos( $unused['title'], '{track_count}' ) === false && strpos( $unused['title'], 'خواننده' ) !== false, 'non-applicable placeholders safely become empty strings' );
@@ -100,9 +109,13 @@ $call_private = Closure::bind( function ( $method, $args ) {
 }, $handler, 'TaranehYar_Post_Handler' );
 $category = $call_private( 'primary_category_details', array( array( 10, 13 ) ) );
 seo_ok( $category['id'] === 13 && $category['url'] === 'https://example.test/category/13/', 'internal category target prefers the configured most-specific category' );
+$blank_copy_profile = $call_private( 'seo_profile', array( 'remix', $vars, array( 'intro' => '', 'intro_en' => '' ) ) );
+seo_ok( $blank_copy_profile['intro'] === '' && $blank_copy_profile['intro_en'] === '', 'blank per-post copy fields intentionally suppress default introductions' );
 $remix_content = $call_private( 'release_content', array( 'remix', array( 'intro' => 'ریمیکس آزمایشی' ), array( 'نام اثر' => 'قطعه' ), '', '', array(), $category ) );
 seo_ok( strpos( $remix_content, 'category/13/' ) !== false && strpos( $remix_content, 'مشاهدهٔ ریمیکس‌های بیشتر' ) !== false, 'remix post body links to the remix category with a type-specific label' );
 seo_ok( strpos( $remix_content, 'مشاهدهٔ آهنگ‌های بیشتر' ) === false, 'remix category link does not use the generic song label' );
+$localized_content = $call_private( 'release_content', array( 'nohe', array( 'intro' => 'متن فارسی', 'intro_en' => 'Download <script>alert(1)</script>.' ), array(), '', '', array(), array() ) );
+seo_ok( strpos( $localized_content, 'lang="en" dir="ltr"' ) !== false && strpos( $localized_content, '&lt;script&gt;' ) !== false, 'English introduction is visible, left-to-right, and safely escaped' );
 
 $schema = new TaranehYar_SEO();
 $call_seo_private = Closure::bind( function ( $method, $args ) {

@@ -35,11 +35,14 @@ ok($track . ' [128].mp3' === 'Artist - Track [128].mp3', '128k file pattern');
 
 // ── archive_path: strict relative path validation and legacy fallback ──
 ok(smp_validate_archive_path('music/a/alireza-rozegar', 'music') === 'music/a/alireza-rozegar', 'valid music archive path');
+ok(smp_validate_archive_path('remix/a/alireza-rozegar', 'remix') === 'remix/a/alireza-rozegar', 'valid separate remix archive path');
+ok(smp_validate_archive_path('nohe/a/alireza-rozegar', 'nohe') === 'nohe/a/alireza-rozegar', 'valid separate nohe archive path');
 ok(smp_validate_archive_path('music/a/alireza-rozegar/', 'music') === 'music/a/alireza-rozegar', 'trailing slash is normalized');
 ok(smp_validate_archive_path('music-video/a/alireza-rozegar', 'music-video') === 'music-video/a/alireza-rozegar', 'valid music-video archive path');
 ok(smp_validate_archive_path('album/a/alireza-rozegar', 'album') === 'album/a/alireza-rozegar', 'valid album archive path');
 ok(smp_validate_archive_path('leech/a/alireza-rozegar', 'leech') === 'leech/a/alireza-rozegar', 'valid leech archive path');
 ok(smp_validate_archive_path('album/a/alireza-rozegar', 'music') === false, 'endpoint-specific root is enforced');
+ok(smp_validate_archive_path('nohe/a/alireza-rozegar', 'remix') === false, 'remix and nohe roots cannot be mixed');
 ok(smp_validate_archive_path('music/b/alireza-rozegar', 'music') === false, 'archive shard must match slug initial');
 ok(smp_validate_archive_path('music/a/../private', 'music') === false, 'path traversal is rejected');
 ok(smp_validate_archive_path('/music/a/alireza-rozegar', 'music') === false, 'absolute archive paths are rejected');

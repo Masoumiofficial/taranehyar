@@ -6,6 +6,11 @@ class TaranehYar_Admin_Pages {
     public function init() {
         add_action( 'admin_menu', array( $this, 'register_menus' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+        add_action( 'admin_post_ty_transfer_run', array( $this, 'handle_transfer_run' ) );
+        add_action( 'admin_post_ty_transfer_retry', array( $this, 'handle_transfer_retry' ) );
+        add_action( 'admin_post_ty_transfer_discard_failed', array( $this, 'handle_transfer_discard_failed' ) );
+        add_action( 'admin_post_ty_transfer_discard_queue', array( $this, 'handle_transfer_discard_queue' ) );
+        add_action( 'admin_post_ty_transfer_clear_history', array( $this, 'handle_transfer_clear_history' ) );
     }
 
     public function register_menus() {
@@ -17,12 +22,13 @@ class TaranehYar_Admin_Pages {
         add_submenu_page( 'ty-dashboard', 'موزیک ویدیو', 'موزیک ویدیو', 'publish_posts',    'ty-video',     array( $this, 'page_video' ) );
         add_submenu_page( 'ty-dashboard', 'آلبوم',       'آلبوم',       'publish_posts',    'ty-album',     array( $this, 'page_album' ) );
         add_submenu_page( 'ty-dashboard', 'لیچ فایل',   'لیچ فایل',    'publish_posts',    'ty-leech',     array( $this, 'page_leech' ) );
-        add_submenu_page( 'ty-dashboard', 'تنظیمات',    'تنظیمات',     'manage_options','ty-settings',  array( new TaranehYar_Settings(), 'render_settings_page' ) );
+        add_submenu_page( 'ty-dashboard', 'وضعیت انتقال‌ها', '📡 وضعیت انتقال‌ها', 'manage_options', 'ty-transfers', array( $this, 'page_transfers' ) );
+        add_submenu_page( 'ty-dashboard', 'تنظیمات',    'تنظیمات',     'manage_options', 'ty-settings',  array( new TaranehYar_Settings(), 'render_settings_page' ) );
     }
 
     public function enqueue_assets( $hook ) {
         $valid = array( 'toplevel_page_ty-dashboard' );
-        $slugs = array( 'ty-remix','ty-nohe','ty-video','ty-album','ty-leech','ty-settings' );
+        $slugs = array( 'ty-remix','ty-nohe','ty-video','ty-album','ty-leech','ty-transfers','ty-settings' );
         foreach ( $slugs as $s ) $valid[] = 'پنل-موزیک_page_' . $s;
         foreach ( $slugs as $s ) $valid[] = 'admin_page_' . $s;
         if ( ! in_array( $hook, $valid ) && strpos( $hook, 'ty' ) === false ) return;
@@ -37,19 +43,22 @@ class TaranehYar_Admin_Pages {
 
     private function nav_tabs( $active ) {
         $tabs = array(
-            'ty-dashboard' => array( 'icon' => '🎵', 'label' => 'تک آهنگ' ),
+            'ty-dashboard' => array( 'icon' => '🎵', 'label' => 'تک‌آهنگ' ),
             'ty-remix'     => array( 'icon' => '🎛️', 'label' => 'ریمیکس' ),
             'ty-nohe'      => array( 'icon' => '🕌', 'label' => 'نوحه' ),
-            'ty-video'     => array( 'icon' => '🎬', 'label' => 'موزیک ویدیو' ),
+            'ty-video'     => array( 'icon' => '🎬', 'label' => 'موزیک‌ویدیو' ),
             'ty-album'     => array( 'icon' => '💿', 'label' => 'آلبوم' ),
             'ty-leech'     => array( 'icon' => '⬇️', 'label' => 'لیچ فایل' ),
-            'ty-settings'  => array( 'icon' => '⚙️', 'label' => 'تنظیمات' ),
         );
+        if ( current_user_can( 'manage_options' ) ) {
+            $tabs['ty-transfers'] = array( 'icon' => '📡', 'label' => 'وضعیت انتقال‌ها' );
+            $tabs['ty-settings'] = array( 'icon' => '⚙️', 'label' => 'تنظیمات' );
+        }
         echo '<div class="ty-tabs">';
         foreach ( $tabs as $slug => $t ) {
             $cls = ( $slug === $active ) ? 'ty-tab active' : 'ty-tab';
             $url = admin_url( 'admin.php?page=' . $slug );
-            echo '<a href="' . esc_url($url) . '" class="' . $cls . '"><span class="tab-dot"></span>' . $t['icon'] . ' ' . esc_html($t['label']) . '</a>';
+            echo '<a href="' . esc_url( $url ) . '" class="' . $cls . '"><span class="tab-dot"></span>' . esc_html( $t['icon'] . ' ' . $t['label'] ) . '</a>';
         }
         echo '</div>';
     }
@@ -58,10 +67,10 @@ class TaranehYar_Admin_Pages {
         echo '<div class="ty-header">';
         echo '<div class="ty-header-icon">' . $icon . '</div>';
         echo '<div class="ty-header-text"><h1>' . esc_html($title) . '</h1><p>' . esc_html($desc) . '</p></div>';
-        echo '<div class="ty-theme-toggle" id="ty-theme-toggle" title="تغییر حالت روز/شب">
+        echo '<button type="button" class="ty-theme-toggle" id="ty-theme-toggle" title="تغییر حالت روز/شب" aria-label="تغییر حالت روز/شب">
             <span class="ty-theme-icon-light">☀️</span>
             <span class="ty-theme-icon-dark">🌙</span>
-        </div>';
+        </button>';
         echo '</div>';
     }
 
@@ -72,31 +81,6 @@ class TaranehYar_Admin_Pages {
             $icon = $type === 'success' ? '✅' : '❌';
             echo '<div class="ty-notice ' . $type . '">' . $icon . ' ' . esc_html($msg) . '</div>';
         }
-    }
-
-    /** کارت وضعیت انتقال‌های اخیر به هاست دانلود */
-    private function queue_card() {
-        $log = TaranehYar_Queue::get_log( 8 );
-        echo '<div class="ty-card"><div class="ty-card-title">📡 وضعیت انتقال‌ها به هاست دانلود</div>';
-        if ( empty( $log ) ) {
-            echo '<p class="ty-hint">هنوز انتقالی ثبت نشده است.</p>';
-        } else {
-            echo '<div class="ty-queue-list">';
-            foreach ( $log as $e ) {
-                $status = isset( $e['status'] ) ? $e['status'] : '';
-                $label  = TaranehYar_Queue::status_label( $status );
-                $time   = isset( $e['time'] ) ? wp_date( 'H:i', $e['time'] ) : '';
-                echo '<div class="ty-queue-item">';
-                echo '<span class="ty-queue-pill ty-queue-' . esc_attr( $status ) . '">' . esc_html( $label ) . '</span>';
-                echo '<span class="ty-queue-type">' . esc_html( isset( $e['type'] ) ? $e['type'] : '' ) . '</span>';
-                echo '<span class="ty-queue-title">' . esc_html( isset( $e['title'] ) ? $e['title'] : '' ) . '</span>';
-                echo '<span class="ty-queue-msg">' . esc_html( isset( $e['message'] ) ? $e['message'] : '' ) . '</span>';
-                echo '<span class="ty-queue-time">' . esc_html( $time ) . '</span>';
-                echo '</div>';
-            }
-            echo '</div>';
-        }
-        echo '</div>';
     }
 
     private function card_open( $title ) {
@@ -126,23 +110,21 @@ class TaranehYar_Admin_Pages {
         return '<select name="is_draft"><option value="publish">✅ منتشر شود</option><option value="draft">📝 پیشنویس شود</option></select>';
     }
 
-    private function select_fatxt() {
-        $o = '';
-        for ($i=1;$i<=20;$i++) $o .= '<option value="'.$i.'">نوع '.$i.'</option>';
-        return '<select name="fatxt">'.$o.'</select>';
-    }
+    private function post_copy_fields( $seo_type ) {
+        $fa_key = TaranehYar_SEO::option_key( $seo_type, 'intro' );
+        $en_key = TaranehYar_SEO::option_key( $seo_type, 'intro_en' );
+        $fa = TaranehYar_Settings::get( $fa_key, TaranehYar_SEO::default_template( $seo_type, 'intro' ) );
+        $en = TaranehYar_Settings::get( $en_key, TaranehYar_SEO::default_template( $seo_type, 'intro_en' ) );
+        $fa_html = '<textarea class="ty-post-copy" name="post_text_fa" rows="3" placeholder="متن معرفی فارسی این نوشته">' . esc_textarea( $fa ) . '</textarea>';
+        $en_html = '<textarea class="ty-post-copy ty-post-copy-en" name="post_text_en" rows="3" dir="ltr" placeholder="English introduction for this post">' . esc_textarea( $en ) . '</textarea>';
 
-    private function select_entxt() {
-        $o = '';
-        for ($i=1;$i<=10;$i++) $o .= '<option value="'.$i.'">نوع '.$i.'</option>';
-        return '<select name="entxt">'.$o.'</select>';
-    }
-
-    private function select_seo() {
-        $opts = array('1'=>'- '.TaranehYar_Settings::get('namesite','سایت'),'2'=>'| بهترین کیفیت','3'=>'( کیفیت اصلی ) + متن','4'=>'( ورژن اصلی ) + متن','5'=>'MP3 + متن ترانه','6'=>'| همراه با متن و کیفیت عالی','7'=>'+ متن و کیفیت عالی','8'=>'{ با متن و پخش آنلاین }');
-        $o = '';
-        foreach ($opts as $v=>$l) $o .= '<option value="'.esc_attr($v).'">'.esc_html($l).'</option>';
-        return '<select name="txtseo">'.$o.'</select>';
+        $this->card_open( '✍️ متن دقیق فارسی و انگلیسی پست' );
+        echo '<p class="ty-hint">این جمله‌ها متن واقعی نوشته‌اند، نه شمارهٔ نوع. متغیرهایی مثل <code>{artist}</code>، <code>{track}</code>، <code>{artist_en}</code>، <code>{track_en}</code> و <code>{quality_sentence}</code> هنگام ساخت پست جایگزین می‌شوند. ویرایش این دو کادر فقط روی همین پست اثر می‌گذارد؛ برای تغییر پیش‌فرض‌ها از تنظیمات ← SEO/GEO/AIO استفاده کنید.</p>';
+        echo '<div class="ty-grid ty-grid-2">';
+        $this->field( 'متن فارسی نوشته', $fa_html );
+        $this->field( 'English post text', $en_html );
+        echo '</div>';
+        $this->card_close();
     }
 
     private function submit_btn( $label = 'ارسال پست' ) {
@@ -160,16 +142,15 @@ class TaranehYar_Admin_Pages {
        SHARED MUSIC FORM BODY (تک آهنگ / ریمیکس / نوحه)
     ═══════════════════════════════════════════════ */
 
-    private function music_form_body() {
+    private function music_form_body( $seo_type = 'music' ) {
 
         $this->card_open('⚙️ تنظیمات پست');
-        echo '<div class="ty-grid ty-grid-4">';
-        $this->field( 'متن فارسی', $this->select_fatxt() );
-        $this->field( 'متن انگلیسی', $this->select_entxt() );
-        $this->field( 'عنوان سئو', $this->select_seo() );
-        $this->field( 'وضعیت', $this->select_draft() );
+        echo '<div class="ty-grid ty-grid-2">';
+        $this->field( 'وضعیت انتشار', $this->select_draft() );
+        echo '<p class="ty-hint">عنوان نوشته، عنوان SEO و توضیحات متا از الگوی اختصاصی این نوع محتوا در صفحهٔ تنظیمات ساخته می‌شوند.</p>';
         echo '</div>';
         $this->card_close();
+        $this->post_copy_fields( $seo_type );
 
         $this->card_open('🎤 اطلاعات اثر');
         echo '<div class="ty-grid ty-grid-2">';
@@ -227,54 +208,52 @@ class TaranehYar_Admin_Pages {
     ═══════════════════════════════════════════════ */
 
     public function page_music() {
-        echo '<div class="ty-wrap" data-theme="dark">';
+        echo '<div class="ty-wrap" data-theme="light">';
         $this->header('🎵','پنل ارسال تک آهنگ','ارسال آهنگ جدید به سایت با تمام جزئیات');
         $this->nav_tabs('ty-dashboard');
         $this->notice();
-        $this->queue_card();
         $this->form_open('ty_submit_music');
-        $this->music_form_body();
+        $this->music_form_body( 'music' );
         $this->submit_btn('ارسال تک آهنگ');
         echo '</form></div>';
     }
 
     public function page_remix() {
-        echo '<div class="ty-wrap" data-theme="dark">';
+        echo '<div class="ty-wrap" data-theme="light">';
         $this->header('🎛️','پنل ارسال ریمیکس','آپلود و ارسال ریمیکس به سایت');
         $this->nav_tabs('ty-remix');
         $this->notice();
         $this->form_open('ty_submit_remix');
-        $this->music_form_body();
+        $this->music_form_body( 'remix' );
         $this->submit_btn('ارسال ریمیکس');
         echo '</form></div>';
     }
 
     public function page_nohe() {
-        echo '<div class="ty-wrap" data-theme="dark">';
+        echo '<div class="ty-wrap" data-theme="light">';
         $this->header('🕌','پنل ارسال نوحه','آپلود و ارسال نوحه به سایت');
         $this->nav_tabs('ty-nohe');
         $this->notice();
         $this->form_open('ty_submit_nohe');
-        $this->music_form_body();
+        $this->music_form_body( 'nohe' );
         $this->submit_btn('ارسال نوحه');
         echo '</form></div>';
     }
 
     public function page_video() {
-        echo '<div class="ty-wrap" data-theme="dark">';
+        echo '<div class="ty-wrap" data-theme="light">';
         $this->header('🎬','پنل ارسال موزیک ویدیو','آپلود و انتشار موزیک ویدیو');
         $this->nav_tabs('ty-video');
         $this->notice();
         $this->form_open('ty_submit_video');
 
         $this->card_open('⚙️ تنظیمات پست');
-        echo '<div class="ty-grid ty-grid-4">';
-        $this->field( 'متن فارسی', $this->select_fatxt() );
-        $this->field( 'متن انگلیسی', $this->select_entxt() );
-        $this->field( 'عنوان سئو', $this->select_seo() );
-        $this->field( 'وضعیت', $this->select_draft() );
+        echo '<div class="ty-grid ty-grid-2">';
+        $this->field( 'وضعیت انتشار', $this->select_draft() );
+        echo '<p class="ty-hint">عنوان و توضیحات موزیک‌ویدیو از الگوی اختصاصی و قابل‌ویرایش تنظیمات ساخته می‌شوند.</p>';
         echo '</div>';
         $this->card_close();
+        $this->post_copy_fields( 'video' );
 
         $this->card_open('🎤 اطلاعات اثر');
         echo '<div class="ty-grid ty-grid-2">';
@@ -313,7 +292,7 @@ class TaranehYar_Admin_Pages {
     }
 
     public function page_album() {
-        echo '<div class="ty-wrap" data-theme="dark">';
+        echo '<div class="ty-wrap" data-theme="light">';
         $this->header('💿','پنل ارسال آلبوم','ارسال آلبوم با لیست کامل ترک‌ها');
         $this->nav_tabs('ty-album');
         $this->notice();
@@ -331,6 +310,7 @@ class TaranehYar_Admin_Pages {
         $this->field( 'لینک کاور MP3', $this->input('cover_mp3','https://...','url') );
         echo '</div>';
         $this->card_close();
+        $this->post_copy_fields( 'album' );
 
         $this->card_open('🖼️ کاور آلبوم');
         echo '<div class="ty-grid ty-grid-2">';
@@ -366,8 +346,159 @@ class TaranehYar_Admin_Pages {
         echo '</form></div>';
     }
 
+    private function transfer_action_form( $action, $label, $fields = array(), $class = 'ty-btn ty-btn-small', $confirm = '' ) {
+        $html = '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="ty-transfer-action"';
+        if ( $confirm !== '' ) $html .= ' data-confirm="' . esc_attr( $confirm ) . '"';
+        $html .= '><input type="hidden" name="action" value="' . esc_attr( $action ) . '">';
+        ob_start();
+        wp_nonce_field( $action );
+        $nonce = ob_get_clean();
+        $html .= $nonce;
+        foreach ( $fields as $name => $value ) {
+            $html .= '<input type="hidden" name="' . esc_attr( $name ) . '" value="' . esc_attr( $value ) . '">';
+        }
+        $html .= '<button type="submit" class="' . esc_attr( $class ) . '">' . esc_html( $label ) . '</button></form>';
+        return $html;
+    }
+
+    private function verify_transfer_request( $action ) {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( 'دسترسی غیرمجاز' );
+        }
+        check_admin_referer( $action );
+    }
+
+    private function transfer_redirect( $message, $is_error = false ) {
+        $args = array( 'page' => 'ty-transfers', 'ty_msg' => $message );
+        if ( $is_error ) $args['ty_err'] = '1';
+        wp_safe_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ) );
+        exit;
+    }
+
+    public function handle_transfer_run() {
+        $this->verify_transfer_request( 'ty_transfer_run' );
+        if ( TaranehYar_Queue::schedule_now() ) {
+            $this->transfer_redirect( 'اجرای صف برای همین لحظه زمان‌بندی شد؛ نتیجه را در همین صفحه پیگیری کنید.' );
+        }
+        $this->transfer_redirect( 'صف انتقال خالی است.', true );
+    }
+
+    public function handle_transfer_retry() {
+        $this->verify_transfer_request( 'ty_transfer_retry' );
+        $id = sanitize_text_field( wp_unslash( $_POST['job_id'] ?? '' ) );
+        if ( TaranehYar_Queue::retry_failed( $id ) ) {
+            $this->transfer_redirect( 'انتقال ناموفق دوباره در صف قرار گرفت.' );
+        }
+        $this->transfer_redirect( 'این مورد دیگر در فهرست خطاهای قابل‌تلاش مجدد نیست.', true );
+    }
+
+    public function handle_transfer_discard_failed() {
+        $this->verify_transfer_request( 'ty_transfer_discard_failed' );
+        $id = sanitize_text_field( wp_unslash( $_POST['job_id'] ?? '' ) );
+        if ( TaranehYar_Queue::discard_failed( $id ) ) {
+            $this->transfer_redirect( 'مورد ناموفق و فایل موقت آن حذف شد.' );
+        }
+        $this->transfer_redirect( 'مورد خطا پیدا نشد.', true );
+    }
+
+    public function handle_transfer_discard_queue() {
+        $this->verify_transfer_request( 'ty_transfer_discard_queue' );
+        $count = TaranehYar_Queue::discard_pending();
+        $this->transfer_redirect( sprintf( '%d مورد در انتظار لغو شد.', $count ) );
+    }
+
+    public function handle_transfer_clear_history() {
+        $this->verify_transfer_request( 'ty_transfer_clear_history' );
+        $count = TaranehYar_Queue::clear_history();
+        $this->transfer_redirect( sprintf( 'گزارش‌ها پاک شد؛ %d مورد خطا و فایل موقت قابل‌بازیابی آن حذف شد. صف در انتظار تغییری نکرد.', $count ) );
+    }
+
+    public function page_transfers() {
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( 'دسترسی غیرمجاز' );
+        $queue = TaranehYar_Queue::get_queue();
+        $failed = TaranehYar_Queue::get_failed( 20 );
+        $history = TaranehYar_Queue::get_log( 100 );
+        $success_count = 0;
+        foreach ( $history as $entry ) {
+            if ( isset( $entry['status'] ) && $entry['status'] === 'success' ) $success_count++;
+        }
+        $next_run = function_exists( 'wp_next_scheduled' ) ? wp_next_scheduled( 'ty_process_queue' ) : false;
+
+        echo '<div class="ty-wrap" data-theme="light">';
+        $this->header( '📡', 'وضعیت انتقال‌ها به هاست دانلود', 'مدیریت صف، تلاش مجدد، لغو موارد در انتظار و بررسی گزارش‌ها' );
+        $this->nav_tabs( 'ty-transfers' );
+        $this->notice();
+
+        echo '<div class="ty-transfer-stats">';
+        echo '<div class="ty-transfer-stat"><strong>' . esc_html( count( $queue ) ) . '</strong><span>در انتظار انتقال</span></div>';
+        echo '<div class="ty-transfer-stat ty-transfer-stat-error"><strong>' . esc_html( count( $failed ) ) . '</strong><span>قابل تلاش مجدد</span></div>';
+        echo '<div class="ty-transfer-stat ty-transfer-stat-success"><strong>' . esc_html( $success_count ) . '</strong><span>موفق در گزارش اخیر</span></div>';
+        echo '<div class="ty-transfer-stat"><strong>' . ( $next_run ? esc_html( wp_date( 'Y/m/d H:i:s', (int) $next_run ) ) : '—' ) . '</strong><span>اجرای زمان‌بندی‌شدهٔ بعدی</span></div>';
+        echo '</div>';
+
+        $this->card_open( '🕹️ کنترل صف انتقال' );
+        echo '<div class="ty-transfer-controls">';
+        echo $this->transfer_action_form( 'ty_transfer_run', '▶ اجرای صف اکنون', array(), 'ty-btn ty-btn-primary' );
+        if ( ! empty( $queue ) ) {
+            echo $this->transfer_action_form( 'ty_transfer_discard_queue', 'لغو همهٔ موارد در انتظار', array(), 'ty-btn ty-btn-danger', 'همهٔ موارد در انتظار لغو و فایل‌های موقت مربوط حذف شوند؟' );
+        }
+        if ( ! empty( $history ) || ! empty( $failed ) ) {
+            echo $this->transfer_action_form( 'ty_transfer_clear_history', 'پاک‌کردن تاریخچه و خطاها', array(), 'ty-btn ty-btn-secondary', 'گزارش‌ها و موارد خطای قابل‌بازیابی پاک شوند؟ صف در انتظار باقی می‌ماند.' );
+        }
+        echo '</div>';
+        echo '<p class="ty-hint">پردازش پس‌زمینه به WP-Cron وابسته است. اگر صف اجرا نشد، دکمهٔ «اجرای صف اکنون» را بزنید و مطمئن شوید Cron وردپرس روی هاست فعال است. فایل‌های موقت انتقال ناموفق تا زمان تلاش مجدد یا حذف مورد نگه داشته می‌شوند.</p>';
+        $this->card_close();
+
+        $this->card_open( '⏳ صف در انتظار (' . count( $queue ) . ')' );
+        if ( empty( $queue ) ) {
+            echo '<p class="ty-hint">در حال حاضر کاری در صف نیست.</p>';
+        } else {
+            echo '<div class="ty-table-scroll"><table class="ty-transfer-table"><thead><tr><th>نوع</th><th>عنوان</th><th>مسیر آرشیو</th><th>ثبت</th><th>وضعیت</th></tr></thead><tbody>';
+            foreach ( $queue as $item ) {
+                $created = isset( $item['created'] ) ? wp_date( 'Y/m/d H:i', (int) $item['created'] ) : '—';
+                $path = isset( $item['archive_path'] ) && $item['archive_path'] !== '' ? $item['archive_path'] : 'مسیر قدیمی/تاریخ‌محور';
+                echo '<tr><td>' . esc_html( isset( $item['type'] ) ? $item['type'] : '' ) . '</td><td>' . esc_html( isset( $item['title'] ) ? $item['title'] : '' ) . '</td><td><code dir="ltr">' . esc_html( $path ) . '</code></td><td>' . esc_html( $created ) . '</td><td><span class="ty-queue-pill ty-queue-queued">در صف</span></td></tr>';
+            }
+            echo '</tbody></table></div>';
+        }
+        $this->card_close();
+
+        $this->card_open( '⚠️ انتقال‌های ناموفق و قابل‌بازیابی (' . count( $failed ) . ')' );
+        if ( empty( $failed ) ) {
+            echo '<p class="ty-hint">مورد ناموفقی برای تلاش مجدد وجود ندارد.</p>';
+        } else {
+            echo '<div class="ty-table-scroll"><table class="ty-transfer-table"><thead><tr><th>نوع</th><th>عنوان</th><th>پیام خطا</th><th>زمان خطا</th><th>عملیات</th></tr></thead><tbody>';
+            foreach ( $failed as $item ) {
+                $failed_at = isset( $item['failed_at'] ) ? wp_date( 'Y/m/d H:i', (int) $item['failed_at'] ) : '—';
+                $message = isset( $item['last_error'] ) ? $item['last_error'] : 'انتقال ناموفق بود.';
+                $id = isset( $item['id'] ) ? (string) $item['id'] : '';
+                echo '<tr><td>' . esc_html( isset( $item['type'] ) ? $item['type'] : '' ) . '</td><td>' . esc_html( isset( $item['title'] ) ? $item['title'] : '' ) . '</td><td class="ty-transfer-error-message">' . esc_html( $message ) . '</td><td>' . esc_html( $failed_at ) . '</td><td><div class="ty-transfer-row-actions">';
+                echo $this->transfer_action_form( 'ty_transfer_retry', 'تلاش مجدد', array( 'job_id' => $id ), 'ty-btn ty-btn-small' );
+                echo $this->transfer_action_form( 'ty_transfer_discard_failed', 'حذف', array( 'job_id' => $id ), 'ty-btn ty-btn-small ty-btn-danger', 'این مورد خطا و فایل‌های موقت نگه‌داشته‌شده حذف شوند؟' );
+                echo '</div></td></tr>';
+            }
+            echo '</tbody></table></div>';
+        }
+        $this->card_close();
+
+        $this->card_open( '🧾 گزارش آخرین انتقال‌ها (' . count( $history ) . ')' );
+        if ( empty( $history ) ) {
+            echo '<p class="ty-hint">گزارشی ثبت نشده است.</p>';
+        } else {
+            echo '<div class="ty-table-scroll"><table class="ty-transfer-table"><thead><tr><th>وضعیت</th><th>نوع</th><th>عنوان</th><th>جزئیات</th><th>زمان</th></tr></thead><tbody>';
+            foreach ( $history as $entry ) {
+                $status = isset( $entry['status'] ) ? $entry['status'] : '';
+                $time = isset( $entry['time'] ) ? wp_date( 'Y/m/d H:i:s', (int) $entry['time'] ) : '—';
+                echo '<tr><td><span class="ty-queue-pill ty-queue-' . esc_attr( $status ) . '">' . esc_html( TaranehYar_Queue::status_label( $status ) ) . '</span></td><td>' . esc_html( isset( $entry['type'] ) ? $entry['type'] : '' ) . '</td><td>' . esc_html( isset( $entry['title'] ) ? $entry['title'] : '' ) . '</td><td class="ty-transfer-error-message">' . esc_html( isset( $entry['message'] ) ? $entry['message'] : '' ) . '</td><td>' . esc_html( $time ) . '</td></tr>';
+            }
+            echo '</tbody></table></div>';
+        }
+        $this->card_close();
+        echo '</div>';
+    }
+
     public function page_leech() {
-        echo '<div class="ty-wrap" data-theme="dark">';
+        echo '<div class="ty-wrap" data-theme="light">';
         $this->header('⬇️','پنل لیچ فایل','انتقال فایل از سرور به هاست دانلود');
         $this->nav_tabs('ty-leech');
         $this->notice();

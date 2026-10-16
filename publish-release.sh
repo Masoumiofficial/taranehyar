@@ -4,7 +4,7 @@
 # ۱) نسخه را از هدر افزونه می‌خواند و با CHANGELOG و readme.txt چک می‌کند
 # ۲) بسته‌های انتشار را با build.sh می‌سازد
 # ۳) برچسب git (مثل v1.0.0) را می‌سازد و push می‌کند
-# ۴) GitHub Release را با فایل‌های zip منتشر می‌کند
+# ۴) GitHub Release را با ZIPهای نسخه‌دار و PDF راهنما (در صورت وجود) منتشر می‌کند
 #
 # استفاده:
 #   ./publish-release.sh                 # انتشار همین نسخه (v1.0.3)
@@ -85,10 +85,21 @@ ok "نسخه در هدر افزونه، readme.txt و CHANGELOG سازگار ا�
 log "ساخت بسته‌ها با build.sh ..."
 ./build.sh >/dev/null
 ASSETS=("$DIST_DIR/taranehyar.zip" "$DIST_DIR/taranehyar-hostdl.zip")
+VERSIONED_PLUGIN="$DIST_DIR/taranehyar-v${VERSION}.zip"
+VERSIONED_HOSTDL="$DIST_DIR/taranehyar-hostdl-v${VERSION}.zip"
+cp "${ASSETS[0]}" "$VERSIONED_PLUGIN"
+cp "${ASSETS[1]}" "$VERSIONED_HOSTDL"
+ASSETS+=("$VERSIONED_PLUGIN" "$VERSIONED_HOSTDL")
+
+PDF_ASSET="docs/taranehyar-install-guide-fa-v${VERSION}.pdf"
+if [[ -s "$PDF_ASSET" ]]; then
+    ASSETS+=("$PDF_ASSET")
+fi
+
 for f in "${ASSETS[@]}"; do
     [[ -s "$f" ]] || die "بسته $f ساخته نشد."
 done
-ok "بسته‌ها ساخته شد: ${ASSETS[*]}"
+ok "بسته‌ها و فایل‌های همراه آماده‌اند: ${ASSETS[*]}"
 
 # --- ۴. استخراج یادداشت‌های انتشار از CHANGELOG -----------------------
 NOTES_FILE="$(mktemp)"
@@ -106,10 +117,13 @@ trap 'rm -f "$NOTES_FILE"' EXIT
     echo
     echo "## بسته‌های نصبی"
     echo
-    echo "- \`taranehyar.zip\` — افزونه وردپرس (پیشخوان ← افزونه‌ها ← افزودن ← بارگذاری افزونه)"
-    echo "- \`taranehyar-hostdl.zip\` — فقط اسکریپت‌های هاست دانلود (در ریشه هاست دانلود آپلود شود)"
+    echo "- \`taranehyar.zip\` و \`taranehyar-v${VERSION}.zip\` — افزونه وردپرس (پیشخوان ← افزونه‌ها ← افزودن ← بارگذاری افزونه)"
+    echo "- \`taranehyar-hostdl.zip\` و \`taranehyar-hostdl-v${VERSION}.zip\` — فقط اسکریپت‌های هاست دانلود (در ریشه هاست دانلود آپلود شود)"
+    if [[ -s "$PDF_ASSET" ]]; then
+        echo "- \`${PDF_ASSET##*/}\` — راهنمای نصب فارسی (PDF)"
+    fi
     echo
-    echo "راهنمای نصب فارسی: [\`docs/INSTALL-fa.md\`](https://github.com/$(gh repo view --json nameWithOwner -q .nameWithOwner)/blob/main/docs/INSTALL-fa.md)"
+    echo "راهنمای نصب فارسی: [\`docs/INSTALL-fa.md\`](https://github.com/$(gh repo view --json nameWithOwner -q .nameWithOwner)/blob/${TAG}/docs/INSTALL-fa.md)"
 } > "$NOTES_FILE"
 
 # بخش SHA-256 فقط وقتی به ریلیز اضافه می‌شود که فایل‌ها واقعاً پیوست شده باشند
@@ -118,14 +132,15 @@ hashes_section() {
     echo "## بررسی سلامت فایل‌ها (SHA-256)"
     echo
     echo '```'
-    ( cd "$DIST_DIR" && sha256sum taranehyar.zip taranehyar-hostdl.zip )
+    sha256sum "${ASSETS[@]}"
     echo '```'
 }
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
     ok "اجرای آزمایشی — بسته‌ها آماده‌اند و یادداشت‌ها ساخته شدند، اما چیزی منتشر نشد."
     echo "--- یادداشت‌های انتشار ---"
-    { cat "$NOTES_FILE"; hashes_section; } > "$NOTES_FILE"
+    { cat "$NOTES_FILE"; hashes_section; } > "${NOTES_FILE}.tmp"
+    mv "${NOTES_FILE}.tmp" "$NOTES_FILE"
     cat "$NOTES_FILE"
     exit 0
 fi

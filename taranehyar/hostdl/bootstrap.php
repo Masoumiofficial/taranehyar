@@ -52,7 +52,7 @@ function smp_validate_archive_path($path, $expected_root = '')
     $parts = explode('/', $path);
     if (count($parts) !== 3) return false;
 
-    $roots = array('music', 'music-video', 'album', 'leech');
+    $roots = array('music', 'remix', 'nohe', 'music-video', 'album', 'leech');
     if (!in_array($parts[0], $roots, true)) return false;
     if ($expected_root !== '' && $parts[0] !== $expected_root) return false;
     if (!preg_match('/^[a-z0-9]$/', $parts[1])) return false;

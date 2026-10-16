@@ -581,3 +581,214 @@
     .ty-queue-item { grid-template-columns: 90px 1fr; }
     .ty-queue-msg, .ty-queue-time { display: none; }
 }
+
+/* ── تنظیمات مرتب‌شده ─────────────────────────────────────────────── */
+.ty-theme-toggle {
+    appearance: none;
+    -webkit-appearance: none;
+    color: inherit;
+}
+
+.ty-settings-shortcuts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: -10px 0 20px;
+}
+
+.ty-settings-shortcuts a {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 12px;
+    color: var(--text-muted);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    text-decoration: none;
+    font-size: 12px;
+}
+
+.ty-settings-shortcuts a:hover {
+    color: var(--accent);
+    border-color: var(--border-hover);
+}
+
+.ty-settings-group {
+    margin: 0 0 14px;
+    overflow: hidden;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+}
+
+.ty-settings-group[open] { border-color: var(--border-hover); }
+
+.ty-settings-group > summary,
+.ty-seo-type-group > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 18px 22px;
+    color: var(--text);
+    cursor: pointer;
+    list-style: none;
+    font-weight: 700;
+}
+
+.ty-settings-group > summary::-webkit-details-marker,
+.ty-seo-type-group > summary::-webkit-details-marker { display: none; }
+
+.ty-settings-group > summary::after,
+.ty-seo-type-group > summary::after {
+    content: '＋';
+    color: var(--accent);
+    font-size: 18px;
+    line-height: 1;
+}
+
+.ty-settings-group[open] > summary::after,
+.ty-seo-type-group[open] > summary::after { content: '−'; }
+
+.ty-settings-group > summary small {
+    margin-right: auto;
+    color: var(--text-dim);
+    font-size: 11px;
+    font-weight: 400;
+}
+
+.ty-settings-group[open] > summary { border-bottom: 1px solid var(--border); }
+.ty-settings-group-body { padding: 18px 22px 22px; }
+.ty-settings-group-body > .ty-hint:first-child { margin-top: 0; }
+
+.ty-settings-group-body .ty-settings-table th { width: 280px; }
+.ty-settings-table input.ty-setting-input {
+    width: 100%;
+    max-width: 640px;
+    min-height: 42px;
+    padding: 9px 12px;
+    direction: ltr;
+    text-align: left;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: 9px;
+    color: var(--text);
+    font: inherit;
+}
+
+.ty-settings-table input.ty-setting-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+.ty-settings-table input.ty-setting-input.ty-setting-rtl { direction: rtl; text-align: right; }
+.ty-settings-table input.ty-setting-input.ty-setting-ltr { direction: ltr; text-align: left; }
+.ty-settings-table input[type=password] { direction: ltr; text-align: left; }
+
+.ty-seo-type-group {
+    margin-top: 10px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-elevated-hover);
+}
+
+.ty-seo-type-group > summary { padding: 13px 16px; color: var(--accent); }
+.ty-seo-type-group[open] > summary { border-bottom: 1px solid var(--border); }
+.ty-seo-type-group .ty-settings-table { padding: 0 16px; }
+.ty-settings-group .submit { margin: 0; }
+
+/* ── متن دقیق فارسی/انگلیسی فرم پست ─────────────────────────────── */
+.ty-field textarea.ty-post-copy {
+    min-height: 104px;
+    line-height: 1.85;
+    text-align: right;
+    direction: rtl;
+    background: var(--input-bg);
+}
+
+.ty-field textarea.ty-post-copy-en {
+    text-align: left;
+    direction: ltr;
+    font-family: Arial, Tahoma, sans-serif;
+}
+
+.ty-release-intro-en {
+    margin: 12px 0;
+    padding: 12px 16px;
+    border-left: 3px solid var(--accent);
+    background: var(--bg-elevated);
+    border-radius: 8px;
+    text-align: left;
+    line-height: 1.8;
+}
+
+/* ── صفحهٔ مستقل مدیریت انتقال‌ها ───────────────────────────────── */
+.ty-transfer-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.ty-transfer-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-height: 92px;
+    padding: 16px 18px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+}
+
+.ty-transfer-stat strong {
+    color: var(--accent);
+    font-size: 20px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.ty-transfer-stat span { color: var(--text-muted); font-size: 12px; }
+.ty-transfer-stat-error strong { color: var(--error); }
+.ty-transfer-stat-success strong { color: var(--success); }
+
+.ty-transfer-controls,
+.ty-transfer-row-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 9px;
+}
+
+.ty-transfer-action { display: inline-flex; margin: 0; }
+.ty-btn-small { padding: 7px 12px; border-radius: 8px; font-size: 12px; line-height: 1.4; }
+.ty-btn-secondary { color: var(--text); background: var(--bg-elevated-hover); border: 1px solid var(--border); }
+.ty-btn-danger { color: #fff; background: #c43d4b; border: 1px solid #c43d4b; }
+.ty-btn-danger:hover { background: #a92e3c; }
+.ty-queue-cancelled { background: rgba(139,139,167,0.18); color: var(--text-muted); }
+
+.ty-table-scroll { width: 100%; overflow-x: auto; }
+.ty-transfer-table { width: 100%; border-collapse: collapse; min-width: 760px; font-size: 12px; }
+.ty-transfer-table th,
+.ty-transfer-table td {
+    padding: 11px 12px;
+    text-align: right;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border);
+}
+.ty-transfer-table th { color: var(--text-muted); font-weight: 700; white-space: nowrap; }
+.ty-transfer-table td { color: var(--text); }
+.ty-transfer-table tbody tr:hover { background: var(--bg-elevated-hover); }
+.ty-transfer-table code { color: var(--text-muted); white-space: nowrap; }
+.ty-transfer-error-message { max-width: 380px; overflow-wrap: anywhere; color: var(--text-muted) !important; }
+
+@media (max-width: 900px) {
+    .ty-transfer-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 700px) {
+    .ty-settings-group > summary { align-items: flex-start; flex-wrap: wrap; padding: 15px; }
+    .ty-settings-group > summary small { width: 100%; margin-right: 0; }
+    .ty-settings-group-body { padding: 14px; }
+    .ty-settings-group-body .ty-settings-table th,
+    .ty-settings-table th { display: block; width: auto; padding: 12px 0 4px; }
+    .ty-settings-table td { display: block; padding: 4px 0 12px; }
+    .ty-transfer-stats { grid-template-columns: 1fr 1fr; }
+    .ty-transfer-stat strong { font-size: 16px; }
+}

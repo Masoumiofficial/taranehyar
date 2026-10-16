@@ -16,6 +16,14 @@ archive_ok(
     'music archive is sharded by artist_en slug'
 );
 archive_ok(
+    TaranehYar_Archive::path('remix', 'Alireza Rozegar') === 'remix/a/alireza-rozegar',
+    'remix uses its own archive root'
+);
+archive_ok(
+    TaranehYar_Archive::path('nohe', 'Alireza Rozegar') === 'nohe/a/alireza-rozegar',
+    'nohe uses its own archive root'
+);
+archive_ok(
     TaranehYar_Archive::path('music-video', 'Alireza Rozegar') === 'music-video/a/alireza-rozegar',
     'music video uses its own archive root'
 );

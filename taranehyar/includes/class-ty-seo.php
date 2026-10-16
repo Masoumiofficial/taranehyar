@@ -22,7 +22,8 @@ class TaranehYar_SEO {
         'post_title'  => 'عنوان نوشته',
         'title'       => 'عنوان SEO',
         'description' => 'توضیحات متا',
-        'intro'       => 'متن آغازین پست',
+        'intro'       => 'متن آغازین فارسی پست',
+        'intro_en'    => 'متن آغازین انگلیسی پست',
         'focus'       => 'عبارت کلیدی کانونی',
     );
 
@@ -31,35 +32,40 @@ class TaranehYar_SEO {
             'post_title'  => 'دانلود آهنگ {artist} به نام {track}',
             'title'       => 'دانلود آهنگ {artist} به نام {track} | {site}',
             'description' => 'دانلود آهنگ «{track}» از {artist}. {quality_sentence}',
-            'intro'       => 'آهنگ «{track}» با صدای {artist} را دریافت کنید. {quality_sentence}',
+            'intro'       => 'آهنگ «{track}» از {artist}. {quality_sentence}',
+            'intro_en'    => '“{track_en}” by {artist_en}. {quality_sentence_en}',
             'focus'       => 'دانلود آهنگ {artist} {track}',
         ),
         'remix' => array(
             'post_title'  => 'دانلود ریمیکس {track} از {artist}',
             'title'       => 'دانلود ریمیکس {track} از {artist} | {site}',
             'description' => 'دانلود ریمیکس «{track}» از {artist}. {quality_sentence}',
-            'intro'       => 'ریمیکس «{track}» از {artist} را با کیفیت‌های موجود دریافت کنید. {quality_sentence}',
+            'intro'       => 'ریمیکس «{track}» از {artist}. {quality_sentence}',
+            'intro_en'    => 'Remix: “{track_en}” by {artist_en}. {quality_sentence_en}',
             'focus'       => 'دانلود ریمیکس {artist} {track}',
         ),
         'nohe' => array(
             'post_title'  => 'دانلود مداحی {track} با صدای {artist}',
             'title'       => 'دانلود نوحه و مداحی {track} از {artist} | {site}',
             'description' => 'دانلود نوحه و مداحی «{track}» با صدای {artist}. {quality_sentence}',
-            'intro'       => 'مداحی «{track}» با صدای {artist} را دریافت کنید. {quality_sentence}',
+            'intro'       => 'نوحه/مداحی «{track}» با صدای {artist}. {quality_sentence}',
+            'intro_en'    => 'Devotional recitation: “{track_en}” by {artist_en}. {quality_sentence_en}',
             'focus'       => 'دانلود مداحی {artist} {track}',
         ),
         'video' => array(
             'post_title'  => 'دانلود موزیک ویدیو {artist} به نام {track}',
             'title'       => 'دانلود موزیک ویدیو {artist} به نام {track} | {site}',
             'description' => 'مشاهده و دانلود موزیک‌ویدیوی «{track}» از {artist}. {quality_sentence}',
-            'intro'       => 'موزیک‌ویدیوی «{track}» از {artist} را با کیفیت‌های موجود تماشا و دریافت کنید. {quality_sentence}',
+            'intro'       => 'موزیک‌ویدیوی «{track}» از {artist}. {quality_sentence}',
+            'intro_en'    => 'Music video: “{track_en}” by {artist_en}. {quality_sentence_en}',
             'focus'       => 'دانلود موزیک ویدیو {artist} {track}',
         ),
         'album' => array(
             'post_title'  => 'دانلود آلبوم {album} از {artist}',
             'title'       => 'دانلود آلبوم {album} از {artist} | {site}',
-            'description' => 'دانلود آلبوم «{album}» از {artist} شامل {track_count} قطعه؛ لینک‌های فایل و دریافت یکجای آلبوم در این صفحه.',
-            'intro'       => 'آلبوم «{album}» از {artist} شامل {track_count} قطعه است. لینک قطعه‌ها و فایل یکجای آلبوم را در همین صفحه ببینید.',
+            'description' => 'آلبوم «{album}» از {artist} با {track_count} قطعهٔ ثبت‌شده.',
+            'intro'       => 'اطلاعات آلبوم «{album}» از {artist}؛ تعداد قطعه‌های ثبت‌شده: {track_count}.',
+            'intro_en'    => 'Album entry: “{album_en}” by {artist_en}. Track count: {track_count_en}.',
             'focus'       => 'دانلود آلبوم {artist} {album}',
         ),
     );
@@ -101,7 +107,7 @@ class TaranehYar_SEO {
         $variables = array_merge( array(
             'artist' => '', 'track' => '', 'artist_en' => '', 'track_en' => '',
             'album' => '', 'album_en' => '', 'site' => '', 'qualities' => '',
-            'quality_sentence' => '', 'track_count' => '', 'info' => '', 'category' => '',
+            'quality_sentence' => '', 'quality_sentence_en' => '', 'track_count' => '', 'track_count_en' => '', 'info' => '', 'category' => '',
         ), $variables );
         $result = array();
         foreach ( self::TEMPLATE_FIELDS as $field => $label ) {

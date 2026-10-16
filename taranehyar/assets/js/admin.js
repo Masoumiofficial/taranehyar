@@ -1,7 +1,7 @@
 (function () {
     'use strict';
 
-    var STORAGE_KEY = 'ty_theme';
+    var STORAGE_KEY = 'ty_theme_v2';
     var root = document.documentElement;
 
     function applyTheme( theme ) {
@@ -12,9 +12,9 @@
 
     function getSavedTheme() {
         try {
-            return localStorage.getItem( STORAGE_KEY ) || 'dark';
+            return localStorage.getItem( STORAGE_KEY ) || 'light';
         } catch ( e ) {
-            return 'dark';
+            return 'light';
         }
     }
 
@@ -48,6 +48,21 @@
                 ripple.style.top = ( e.clientY - rect.top ) + 'px';
                 btn.appendChild( ripple );
                 setTimeout( function () { ripple.remove(); }, 600 );
+            } );
+        } );
+
+        document.querySelectorAll( 'form[data-confirm]' ).forEach( function ( form ) {
+            form.addEventListener( 'submit', function ( event ) {
+                if ( ! window.confirm( form.getAttribute( 'data-confirm' ) || 'این عملیات انجام شود؟' ) ) {
+                    event.preventDefault();
+                }
+            } );
+        } );
+
+        document.querySelectorAll( '.ty-settings-shortcuts a' ).forEach( function ( link ) {
+            link.addEventListener( 'click', function () {
+                var target = document.querySelector( link.getAttribute( 'href' ) );
+                if ( target && target.tagName.toLowerCase() === 'details' ) target.open = true;
             } );
         } );
 

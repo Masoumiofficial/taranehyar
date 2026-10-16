@@ -3,13 +3,13 @@
  * Archive path helpers shared by all content types.
  *
  * New uploads are grouped by the first character of the English artist slug,
- * for example: music/a/alireza-rozegar.
+ * for example: music/a/alireza-rozegar, remix/a/artist-name, or nohe/a/artist-name.
  */
 class TaranehYar_Archive {
 
     /** The only archive roots accepted by the plugin and the HostDL service. */
     public static function roots() {
-        return array( 'music', 'music-video', 'album', 'leech' );
+        return array( 'music', 'remix', 'nohe', 'music-video', 'album', 'leech' );
     }
 
     /**
@@ -36,7 +36,7 @@ class TaranehYar_Archive {
     /**
      * Build a date-free, sharded archive path for an artist.
      *
-     * @param string $root One of music, music-video, album, or leech.
+     * @param string $root One of music, remix, nohe, music-video, album, or leech.
      * @param string $artist_en English artist name.
      * @return string|false Relative archive path, or false for an unsupported root.
      */
