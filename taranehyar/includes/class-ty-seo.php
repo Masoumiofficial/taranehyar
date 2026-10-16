@@ -33,7 +33,7 @@ class TaranehYar_SEO {
             'title'       => 'دانلود آهنگ {artist} به نام {track} | {site}',
             'description' => 'دانلود آهنگ «{track}» از {artist}. {quality_sentence}',
             'intro'       => 'آهنگ «{track}» از {artist}.',
-            'intro_en'    => '“{track_en}” by {artist_en}.',
+            'intro_en'    => '“{track_en}” by {artist_en}',
             'focus'       => 'دانلود آهنگ {artist} {track}',
         ),
         'remix' => array(
@@ -41,7 +41,7 @@ class TaranehYar_SEO {
             'title'       => 'دانلود ریمیکس {track} از {artist} | {site}',
             'description' => 'دانلود ریمیکس «{track}» از {artist}. {quality_sentence}',
             'intro'       => 'ریمیکس «{track}» از {artist}.',
-            'intro_en'    => 'Remix: “{track_en}” by {artist_en}.',
+            'intro_en'    => 'Remix: “{track_en}” by {artist_en}',
             'focus'       => 'دانلود ریمیکس {artist} {track}',
         ),
         'nohe' => array(
@@ -49,7 +49,7 @@ class TaranehYar_SEO {
             'title'       => 'دانلود نوحه و مداحی {track} از {artist} | {site}',
             'description' => 'دانلود نوحه و مداحی «{track}» با صدای {artist}. {quality_sentence}',
             'intro'       => 'نوحه/مداحی «{track}» با صدای {artist}.',
-            'intro_en'    => 'Devotional recitation: “{track_en}” by {artist_en}.',
+            'intro_en'    => 'Devotional recitation: “{track_en}” by {artist_en}',
             'focus'       => 'دانلود مداحی {artist} {track}',
         ),
         'video' => array(
@@ -57,7 +57,7 @@ class TaranehYar_SEO {
             'title'       => 'دانلود موزیک ویدیو {artist} به نام {track} | {site}',
             'description' => 'مشاهده و دانلود موزیک‌ویدیوی «{track}» از {artist}. {quality_sentence}',
             'intro'       => 'موزیک‌ویدیوی «{track}» از {artist}.',
-            'intro_en'    => 'Music video: “{track_en}” by {artist_en}.',
+            'intro_en'    => 'Music video: “{track_en}” by {artist_en}',
             'focus'       => 'دانلود موزیک ویدیو {artist} {track}',
         ),
         'album' => array(
@@ -65,7 +65,7 @@ class TaranehYar_SEO {
             'title'       => 'دانلود آلبوم {album} از {artist} | {site}',
             'description' => 'آلبوم «{album}» از {artist} با {track_count} قطعهٔ ثبت‌شده.',
             'intro'       => 'اطلاعات آلبوم «{album}» از {artist}؛ تعداد قطعه‌های ثبت‌شده: {track_count}.',
-            'intro_en'    => 'Album entry: “{album_en}” by {artist_en}. Track count: {track_count_en}.',
+            'intro_en'    => 'Album entry: “{album_en}” by {artist_en}. Track count: {track_count_en}',
             'focus'       => 'دانلود آلبوم {artist} {album}',
         ),
     );
@@ -78,8 +78,8 @@ class TaranehYar_SEO {
                 3 => 'نام اثر: «{track}» | خواننده: {artist}.',
             ),
             'en' => array(
-                2 => 'This post introduces “{track_en}” by {artist_en}.',
-                3 => 'Track: “{track_en}” | Artist: {artist_en}.',
+                2 => 'This post introduces “{track_en}” by {artist_en}',
+                3 => 'Track: “{track_en}” | Artist: {artist_en}',
             ),
         ),
         'remix' => array(
@@ -88,8 +88,8 @@ class TaranehYar_SEO {
                 3 => 'نام ریمیکس: «{track}» | هنرمند: {artist}.',
             ),
             'en' => array(
-                2 => 'This post introduces the remix “{track_en}” by {artist_en}.',
-                3 => 'Remix: “{track_en}” | Artist: {artist_en}.',
+                2 => 'This post introduces the remix “{track_en}” by {artist_en}',
+                3 => 'Remix: “{track_en}” | Artist: {artist_en}',
             ),
         ),
         'nohe' => array(
@@ -98,8 +98,8 @@ class TaranehYar_SEO {
                 3 => 'عنوان نوحه: «{track}» | مداح: {artist}.',
             ),
             'en' => array(
-                2 => 'This post introduces the devotional recitation “{track_en}” by {artist_en}.',
-                3 => 'Recitation: “{track_en}” | Performer: {artist_en}.',
+                2 => 'This post introduces the devotional recitation “{track_en}” by {artist_en}',
+                3 => 'Recitation: “{track_en}” | Performer: {artist_en}',
             ),
         ),
         'video' => array(
@@ -108,8 +108,8 @@ class TaranehYar_SEO {
                 3 => 'عنوان ویدیو: «{track}» | هنرمند: {artist}.',
             ),
             'en' => array(
-                2 => 'This post introduces the music video “{track_en}” by {artist_en}.',
-                3 => 'Music video: “{track_en}” | Artist: {artist_en}.',
+                2 => 'This post introduces the music video “{track_en}” by {artist_en}',
+                3 => 'Music video: “{track_en}” | Artist: {artist_en}',
             ),
         ),
         'album' => array(
@@ -118,8 +118,8 @@ class TaranehYar_SEO {
                 3 => 'نام آلبوم: «{album}» | هنرمند: {artist} | تعداد قطعه‌ها: {track_count}.',
             ),
             'en' => array(
-                2 => 'Album “{album_en}” by {artist_en} contains {track_count_en} submitted tracks.',
-                3 => 'Album: “{album_en}” | Artist: {artist_en} | Track count: {track_count_en}.',
+                2 => 'Album “{album_en}” by {artist_en} contains {track_count_en} submitted tracks',
+                3 => 'Album: “{album_en}” | Artist: {artist_en} | Track count: {track_count_en}',
             ),
         ),
     );
@@ -198,6 +198,10 @@ class TaranehYar_SEO {
         $template = str_replace( array( '{quality_sentence}', '{quality_sentence_en}', '{qualities}' ), '', $template );
         $template = preg_replace( '/[ \\t]+([.!?،؛])/u', '$1', $template );
         $template = preg_replace( '/[ \\t]{2,}/u', ' ', $template );
+        $template = trim( $template );
+        if ( $language === 'en' ) {
+            $template = preg_replace( '/\\.+$/u', '', $template );
+        }
         return trim( $template );
     }
 
@@ -252,6 +256,9 @@ class TaranehYar_SEO {
                 : self::default_template( $type, $field );
             $field_variables = in_array( $field, array( 'intro', 'intro_en' ), true ) ? $intro_variables : $variables;
             $result[ $field ] = self::render_template( $template, $field_variables );
+            if ( $field === 'intro_en' ) {
+                $result[ $field ] = preg_replace( '/\\.+$/u', '', rtrim( $result[ $field ] ) );
+            }
         }
         return $result;
     }

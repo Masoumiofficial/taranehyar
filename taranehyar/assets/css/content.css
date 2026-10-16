@@ -9,6 +9,7 @@
     margin: 24px 0;
     color: inherit;
     line-height: 1.85;
+    text-align: center;
 }
 
 .ty-release-content,
@@ -21,6 +22,7 @@
     border: 1px solid var(--ty-release-border);
     border-radius: 16px;
     background: var(--ty-release-soft);
+    text-align: center;
     box-shadow: 0 8px 24px rgba(35, 40, 70, 0.055);
 }
 
@@ -35,7 +37,7 @@
 }
 
 .ty-release-content .ty-release-intro-fa {
-    text-align: right;
+    text-align: center;
     font-size: 1.04em;
     font-weight: 600;
 }
@@ -45,7 +47,7 @@
     padding-top: 12px;
     border-top: 1px solid var(--ty-release-border);
     direction: ltr;
-    text-align: left;
+    text-align: center;
     font-size: 0.94em;
     font-weight: 400;
     opacity: 0.86;
@@ -86,7 +88,11 @@
 }
 
 .ty-release-content .ty-release-facts dl > div {
+    display: flex;
     min-width: 0;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
     padding: 11px 13px;
     border: 1px solid var(--ty-release-border);
     border-radius: 12px;
@@ -94,61 +100,47 @@
 }
 
 .ty-release-content .ty-release-facts dt {
-    margin: 0 0 3px;
+    width: 100%;
+    margin: 0;
+    padding-bottom: 4px;
     color: inherit;
+    border-bottom: 1px solid var(--ty-release-border);
     font-size: 0.77em;
     font-weight: 500;
+    text-align: center;
     opacity: 0.68;
 }
 
 .ty-release-content .ty-release-facts dd {
+    width: 100%;
     min-width: 0;
     margin: 0;
     font-size: 0.94em;
     font-weight: 650;
     line-height: 1.75;
+    text-align: center;
     overflow-wrap: anywhere;
 }
 
-.ty-release-content .ty-category-link {
-    display: flex;
-    justify-content: flex-start;
-    margin: 0;
-}
-
-.ty-release-content .ty-category-link a {
-    display: inline-flex;
-    align-items: center;
-    gap: 9px;
-    max-width: 100%;
-    padding: 9px 15px;
+.ty-release-content .ty-release-keyword-link,
+.ty-release-content .ty-singer-link {
     color: var(--ty-release-accent);
-    border: 1px solid rgba(103, 85, 217, 0.28);
-    border-radius: 999px;
-    background: rgba(103, 85, 217, 0.07);
-    font-size: 0.88em;
-    font-weight: 650;
-    line-height: 1.6;
-    text-decoration: none;
-    transition: background-color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+    font-weight: inherit;
+    text-decoration: underline;
+    text-decoration-thickness: 0.07em;
+    text-underline-offset: 0.16em;
 }
 
-.ty-release-content .ty-category-link a:hover {
-    border-color: var(--ty-release-accent);
-    background: rgba(103, 85, 217, 0.13);
-    transform: translateY(-1px);
+.ty-release-content .ty-release-keyword-link:hover,
+.ty-release-content .ty-singer-link:hover {
+    text-decoration-thickness: 0.13em;
 }
 
-.ty-release-content .ty-category-link-icon {
-    flex: 0 0 auto;
-    font-size: 1.2em;
-    line-height: 1;
-}
-
-.ty-release-content .ty-category-link-arrow {
-    flex: 0 0 auto;
-    font-size: 1.15em;
-    line-height: 1;
+.ty-release-content .ty-release-keyword-link:focus-visible,
+.ty-release-content .ty-singer-link:focus-visible {
+    border-radius: 3px;
+    outline: 2px solid var(--ty-release-accent);
+    outline-offset: 3px;
 }
 
 .ty-album-tracklist {
@@ -157,6 +149,7 @@
     border: 1px solid var(--ty-release-border);
     border-radius: 16px;
     background: var(--ty-release-soft);
+    text-align: center;
 }
 
 .ty-album-tracklist h2 {
@@ -168,15 +161,15 @@
     display: grid;
     gap: 8px;
     margin: 0;
-    padding-inline-start: 1.5em;
+    padding: 0;
+    list-style-position: inside;
 }
 
-.ty-album-tracklist li { padding-inline-start: 3px; }
+.ty-album-tracklist li { padding-inline-start: 0; }
 .ty-album-tracklist li a { margin-inline-start: 8px; }
 
 @media (max-width: 640px) {
     .ty-release-content { gap: 12px; margin: 18px 0; }
     .ty-release-card { border-radius: 13px; }
     .ty-release-content .ty-release-facts dl { grid-template-columns: minmax(0, 1fr); gap: 8px; }
-    .ty-release-content .ty-category-link a { width: 100%; justify-content: center; text-align: center; }
 }

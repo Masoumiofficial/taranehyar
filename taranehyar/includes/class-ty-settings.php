@@ -250,7 +250,7 @@ class TaranehYar_Settings {
                             $this->row( $opts, 'cat_album', 'دسته‌بندی آلبوم', 'مثال: 5431,2' );
                             ?>
                         </table>
-                        <p class="ty-hint">شناسه‌ها را از «نوشته‌ها ← دسته‌ها» بردارید؛ چند شناسه را با ویرگول جدا کنید. آخرین شناسه به‌عنوان دستهٔ اختصاصی برای پیوند داخلی انتخاب می‌شود.</p>
+                        <p class="ty-hint">شناسه‌ها را از «نوشته‌ها ← دسته‌ها» بردارید؛ چند شناسه را با ویرگول جدا کنید. آخرین شناسه، مقصد پیوند داخلیِ نام اثر در متن پست است.</p>
                     </div>
                 </details>
 
@@ -279,7 +279,7 @@ class TaranehYar_Settings {
                             $this->checkbox_row( $opts, 'seo_title_tag_enabled', 'عنوان تگ title (فقط اگر افزونهٔ SEO شناخته‌شده فعال نیست)' );
                             $this->checkbox_row( $opts, 'seo_meta_description_enabled', 'متای توضیحات پایه (فقط اگر افزونهٔ SEO شناخته‌شده فعال نیست)' );
                             $this->checkbox_row( $opts, 'seo_jsonld_enabled', 'Schema.org برای موزیک، آلبوم و ویدیو' );
-                            $this->checkbox_row( $opts, 'seo_category_links_enabled', 'پیوند داخلی به دستهٔ مرتبط' );
+                            $this->checkbox_row( $opts, 'seo_category_links_enabled', 'پیوند کلیدواژهٔ اثر به دستهٔ مرتبط در متن پست' );
                             $this->checkbox_row( $opts, 'seo_visible_details_enabled', 'نمایش مشخصات اثر و عوامل' );
                             $this->checkbox_row( $opts, 'seo_album_tracklist_enabled', 'نمایش فهرست ترک آلبوم' );
                             ?>

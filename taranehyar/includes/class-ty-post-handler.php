@@ -377,17 +377,171 @@ class TaranehYar_Post_Handler {
         return implode( '، ', $kept );
     }
 
-    /** Build human-readable, escaped post content from the submitted facts. */
-    private function release_content( $type, array $seo, array $details, $info = '', array $credits = array(), array $category = array() ) {
-        $content = '<article class="ty-release-content ty-release-content--' . esc_attr( sanitize_key( $type ) ) . '">';
-
-        if ( $seo['intro'] !== '' || ! empty( $seo['intro_en'] ) ) {
-            $content .= '<section class="ty-release-card ty-release-intro-card" aria-label="معرفی اثر">';
-            if ( $seo['intro'] !== '' ) {
-                $content .= '<div class="ty-release-intro ty-release-intro-fa" lang="fa" dir="rtl">' . wpautop( esc_html( $seo['intro'] ) ) . '</div>';
+    /** Return the first non-empty scalar detail from a list of labels. */
+    private function first_detail_value( array $details, array $labels ) {
+        foreach ( $labels as $label ) {
+            if ( isset( $details[ $label ] ) && is_scalar( $details[ $label ] ) && trim( (string) $details[ $label ] ) !== '' ) {
+                return trim( (string) $details[ $label ] );
             }
-            if ( ! empty( $seo['intro_en'] ) ) {
-                $content .= '<div class="ty-release-intro ty-release-intro-en" lang="en" dir="ltr">' . wpautop( esc_html( $seo['intro_en'] ) ) . '</div>';
+        }
+        return '';
+    }
+
+    /** Render plain copy while safely inserting pre-escaped internal links. */
+    private function copy_html( $text, array $links = array() ) {
+        $text = (string) $text;
+        $matches = array();
+        foreach ( $links as $order => $link ) {
+            if ( empty( $link['text'] ) || ! isset( $link['html'] ) || ! is_string( $link['html'] ) ) continue;
+            $start = strpos( $text, $link['text'] );
+            if ( $start === false ) continue;
+            $matches[] = array(
+                'start' => $start,
+                'length' => strlen( $link['text'] ),
+                'html' => $link['html'],
+                'order' => $order,
+            );
+        }
+        usort( $matches, function ( $left, $right ) {
+            if ( $left['start'] !== $right['start'] ) return $left['start'] <=> $right['start'];
+            if ( $left['length'] !== $right['length'] ) return $right['length'] <=> $left['length'];
+            return $left['order'] <=> $right['order'];
+        } );
+
+        $html = '';
+        $cursor = 0;
+        foreach ( $matches as $match ) {
+            if ( $match['start'] < $cursor ) continue;
+            $html .= esc_html( substr( $text, $cursor, $match['start'] - $cursor ) );
+            $html .= $match['html'];
+            $cursor = $match['start'] + $match['length'];
+        }
+        $html .= esc_html( substr( $text, $cursor ) );
+        return wpautop( $html );
+    }
+
+    /** Build a trusted internal-link element from an escaped keyword and URL. */
+    private function keyword_link_html( $keyword, $url ) {
+        return '<a class="ty-release-keyword-link" href="' . esc_url( $url ) . '">' . esc_html( $keyword ) . '</a>';
+    }
+
+    /** Keep an artist name escaped until the inserted post has its singer term. */
+    private function singer_link_placeholder( $artist ) {
+        return '<span class="ty-singer-link-placeholder">' . esc_html( $artist ) . '</span>';
+    }
+
+    /** Resolve the assigned singer archive, falling back to the site's search page. */
+    private function singer_link_url( $post_id, $artist ) {
+        $url = '';
+        $taxonomy = $this->singer_taxonomy();
+        if ( $post_id > 0 && function_exists( 'wp_get_object_terms' ) && function_exists( 'get_term_link' ) ) {
+            $terms = wp_get_object_terms( $post_id, $taxonomy );
+            if ( ! is_wp_error( $terms ) && is_array( $terms ) && ! empty( $terms ) ) {
+                $term_url = get_term_link( reset( $terms ), $taxonomy );
+                if ( ! is_wp_error( $term_url ) && is_string( $term_url ) ) $url = $term_url;
+            }
+        }
+        if ( $url === '' && $artist !== '' && function_exists( 'get_search_link' ) ) {
+            $url = get_search_link( $artist );
+        }
+        return $url;
+    }
+
+    /** Replace artist placeholders after the singer term exists and save the internal link. */
+    private function link_singer_in_content( $post_id, $content, $artist = '' ) {
+        $placeholder = 'ty-singer-link-placeholder';
+        if ( strpos( $content, $placeholder ) === false ) return $content;
+
+        $url = esc_url( $this->singer_link_url( (int) $post_id, (string) $artist ) );
+        $content = preg_replace_callback(
+            '~<span class="ty-singer-link-placeholder">(.*?)</span>~s',
+            function ( $matches ) use ( $url ) {
+                if ( $url === '' ) return $matches[1];
+                return '<a class="ty-singer-link" href="' . $url . '">' . $matches[1] . '</a>';
+            },
+            $content
+        );
+        if ( function_exists( 'wp_update_post' ) ) {
+            wp_update_post( array( 'ID' => (int) $post_id, 'post_content' => $content ) );
+        }
+        return $content;
+    }
+
+    /** Render the localized about heading and use remaining keywords as inline links. */
+    private function about_heading_html( $type, $track, $artist, $category_url, $link_categories, &$track_linked, &$artist_linked ) {
+        if ( $track === '' && $artist === '' ) return '<h2>دربارهٔ اثر</h2>';
+
+        $track_labels = array(
+            'music' => 'آهنگ',
+            'remix' => 'ریمیکس',
+            'nohe'  => 'نوحه',
+            'video' => 'موزیک‌ویدیو',
+            'album' => 'آلبوم',
+        );
+        $track_label = isset( $track_labels[ $type ] ) ? $track_labels[ $type ] : 'اثر';
+        $heading = '<h2>دربارهٔ اثر';
+        if ( $track !== '' ) {
+            $heading .= ' و ' . esc_html( $track_label ) . ' «';
+            if ( ! $track_linked && $link_categories && $category_url !== '' ) {
+                $heading .= $this->keyword_link_html( $track, $category_url );
+                $track_linked = true;
+            } else {
+                $heading .= esc_html( $track );
+            }
+            $heading .= '»';
+        }
+        if ( $artist !== '' ) {
+            $heading .= ' از ';
+            $heading .= $artist_linked ? esc_html( $artist ) : $this->singer_link_placeholder( $artist );
+            $artist_linked = true;
+        }
+        return $heading . '</h2>';
+    }
+
+    /** Build human-readable, escaped post content from the submitted facts. */
+    private function release_content( $type, array $seo, array $details, $info = '', array $credits = array(), array $category = array(), array $link_terms = array() ) {
+        $type = sanitize_key( $type );
+        $category_url = isset( $category['url'] ) && is_string( $category['url'] ) ? $category['url'] : '';
+        $link_categories = TaranehYar_Settings::get( 'seo_category_links_enabled', '1' ) === '1' && $category_url !== '';
+        $artist = isset( $link_terms['artist'] ) && is_scalar( $link_terms['artist'] )
+            ? trim( (string) $link_terms['artist'] )
+            : $this->first_detail_value( $details, array( 'خواننده', 'هنرمند', 'مداح' ) );
+        $artist_en = isset( $link_terms['artist_en'] ) && is_scalar( $link_terms['artist_en'] ) ? trim( (string) $link_terms['artist_en'] ) : '';
+        $track = isset( $link_terms['track'] ) && is_scalar( $link_terms['track'] )
+            ? trim( (string) $link_terms['track'] )
+            : $this->first_detail_value( $details, array( 'نام اثر', 'نام ویدیو', 'نام آلبوم' ) );
+        $track_en = isset( $link_terms['track_en'] ) && is_scalar( $link_terms['track_en'] ) ? trim( (string) $link_terms['track_en'] ) : '';
+        $artist_linked = false;
+        $track_linked = false;
+        $intro_fa = isset( $seo['intro'] ) ? (string) $seo['intro'] : '';
+        $intro_en = isset( $seo['intro_en'] ) ? (string) $seo['intro_en'] : '';
+        $content = '<article class="ty-release-content ty-release-content--' . esc_attr( $type ) . '">';
+
+        if ( $intro_fa !== '' || $intro_en !== '' ) {
+            $content .= '<section class="ty-release-card ty-release-intro-card" aria-label="معرفی اثر">';
+            if ( $intro_fa !== '' ) {
+                $fa_links = array();
+                if ( $artist !== '' && strpos( $intro_fa, $artist ) !== false ) {
+                    $fa_links[] = array( 'text' => $artist, 'html' => $this->singer_link_placeholder( $artist ) );
+                    $artist_linked = true;
+                }
+                if ( $link_categories && $track !== '' && strpos( $intro_fa, $track ) !== false ) {
+                    $fa_links[] = array( 'text' => $track, 'html' => $this->keyword_link_html( $track, $category_url ) );
+                    $track_linked = true;
+                }
+                $content .= '<div class="ty-release-intro ty-release-intro-fa" lang="fa" dir="rtl">' . $this->copy_html( $intro_fa, $fa_links ) . '</div>';
+            }
+            if ( $intro_en !== '' ) {
+                $en_links = array();
+                if ( ! $artist_linked && $artist_en !== '' && strpos( $intro_en, $artist_en ) !== false ) {
+                    $en_links[] = array( 'text' => $artist_en, 'html' => $this->singer_link_placeholder( $artist_en ) );
+                    $artist_linked = true;
+                }
+                if ( $link_categories && $track_en !== '' && strpos( $intro_en, $track_en ) !== false ) {
+                    $en_links[] = array( 'text' => $track_en, 'html' => $this->keyword_link_html( $track_en, $category_url ) );
+                    $track_linked = true;
+                }
+                $content .= '<div class="ty-release-intro ty-release-intro-en" lang="en" dir="ltr">' . $this->copy_html( $intro_en, $en_links ) . '</div>';
             }
             $content .= '</section><!--more-->';
         }
@@ -397,15 +551,25 @@ class TaranehYar_Post_Handler {
             ? $this->about_text_without_duplicate_credits( $info, $credits )
             : trim( (string) $info );
         if ( $about_text !== '' ) {
-            $content .= '<section class="ty-release-card ty-release-about"><h2>دربارهٔ اثر</h2><div class="ty-release-about-text">' . wpautop( esc_html( $about_text ) ) . '</div></section>';
+            $heading = $this->about_heading_html( $type, $track, $artist, $category_url, $link_categories, $track_linked, $artist_linked );
+            $content .= '<section class="ty-release-card ty-release-about">' . $heading . '<div class="ty-release-about-text">' . wpautop( esc_html( $about_text ) ) . '</div></section>';
         }
 
         if ( $show_facts ) {
             $rows = '';
+            $artist_labels = array( 'خواننده', 'هنرمند', 'مداح' );
+            $track_labels = array( 'نام اثر', 'نام ویدیو', 'نام آلبوم' );
             foreach ( $details as $label => $value ) {
-                if ( is_scalar( $value ) && trim( (string) $value ) !== '' ) {
-                    $rows .= '<div><dt>' . esc_html( $label ) . '</dt><dd>' . esc_html( (string) $value ) . '</dd></div>';
+                if ( ! is_scalar( $value ) || trim( (string) $value ) === '' ) continue;
+                $display_value = esc_html( (string) $value );
+                if ( ! $artist_linked && in_array( $label, $artist_labels, true ) && $artist !== '' && (string) $value === $artist ) {
+                    $display_value = $this->singer_link_placeholder( $artist );
+                    $artist_linked = true;
+                } elseif ( ! $track_linked && $link_categories && in_array( $label, $track_labels, true ) && $track !== '' && (string) $value === $track ) {
+                    $display_value = $this->keyword_link_html( $track, $category_url );
+                    $track_linked = true;
                 }
+                $rows .= '<div><dt>' . esc_html( $label ) . '</dt><dd>' . $display_value . '</dd></div>';
             }
             foreach ( $credits as $label => $value ) {
                 if ( is_scalar( $value ) && trim( (string) $value ) !== '' ) {
@@ -415,21 +579,6 @@ class TaranehYar_Post_Handler {
             if ( $rows !== '' ) {
                 $content .= '<section class="ty-release-card ty-release-facts"><h2>مشخصات اثر</h2><dl>' . $rows . '</dl></section>';
             }
-        }
-
-        if ( TaranehYar_Settings::get( 'seo_category_links_enabled', '1' ) === '1' && ! empty( $category['url'] ) ) {
-            $labels = array(
-                'music' => 'مشاهدهٔ آهنگ‌های بیشتر',
-                'remix' => 'مشاهدهٔ ریمیکس‌های بیشتر',
-                'nohe'  => 'مشاهدهٔ نوحه و مداحی‌های بیشتر',
-                'video' => 'مشاهدهٔ موزیک‌ویدیوهای بیشتر',
-                'album' => 'مشاهدهٔ آلبوم‌های بیشتر',
-            );
-            $link_label = isset( $labels[ $type ] ) ? $labels[ $type ] : 'مشاهدهٔ مطالب مرتبط';
-            if ( ! empty( $category['name'] ) ) {
-                $link_label .= ' در دستهٔ ' . $category['name'];
-            }
-            $content .= '<p class="ty-category-link"><a href="' . esc_url( $category['url'] ) . '"><span class="ty-category-link-icon" aria-hidden="true">♪</span><span>' . esc_html( $link_label ) . '</span><span class="ty-category-link-arrow" aria-hidden="true">←</span></a></p>';
         }
 
         return $content . '</article>';
@@ -562,7 +711,8 @@ class TaranehYar_Post_Handler {
                 'تنظیم‌کننده' => $regulator,
                 'میکس و مسترینگ' => $mixmaster,
             ),
-            $category
+            $category,
+            array( 'artist' => $name, 'track' => $track, 'artist_en' => $enname, 'track_en' => $entrack )
         );
 
         list( $post_status, $req_msg ) = $this->post_status_and_msg( $is_draft );
@@ -584,6 +734,7 @@ class TaranehYar_Post_Handler {
 
         wp_set_post_tags( $post_id, TaranehYar_SEO::tags_for( $seo_type, $name, $enname, $track ) );
         wp_set_object_terms( $post_id, $name, $this->singer_taxonomy() );
+        $content = $this->link_singer_in_content( $post_id, $content, $name );
         if ( $songwriter ) wp_set_object_terms( $post_id, $songwriter, 'songwriter' );
         if ( $composer )   wp_set_object_terms( $post_id, $composer,   'composer' );
         if ( $regulator )  wp_set_object_terms( $post_id, $regulator,  'regulator' );
@@ -754,7 +905,8 @@ class TaranehYar_Post_Handler {
             ),
             $info,
             array(),
-            $category
+            $category,
+            array( 'artist' => $name, 'track' => $track, 'artist_en' => $enname, 'track_en' => $entrack )
         );
         list( $post_status, $req_msg ) = $this->post_status_and_msg( $is_draft );
 
@@ -783,6 +935,7 @@ class TaranehYar_Post_Handler {
         $this->update_mapped_meta( $post_id, 'musics_type', 'mp4' );
         update_post_meta( $post_id, 'online_ply', 'off' );
         wp_set_object_terms( $post_id, $name, $this->singer_taxonomy() );
+        $content = $this->link_singer_in_content( $post_id, $content, $name );
         wp_set_post_tags( $post_id, TaranehYar_SEO::tags_for( 'video', $name, $enname, $track ) );
         if ( ! empty( $link1080 ) ) {
             $this->update_mapped_meta( $post_id, 'video1080p', $this->download_file_url( $urldlhost, $archive_path, $trackname . ' [1080].mp4' ) );
@@ -942,7 +1095,8 @@ class TaranehYar_Post_Handler {
             ),
             $info,
             array(),
-            $category
+            $category,
+            array( 'artist' => $artist, 'track' => $song, 'artist_en' => $artist_en, 'track_en' => $song_en )
         );
         if ( TaranehYar_Settings::get( 'seo_album_tracklist_enabled', '1' ) === '1' && ! empty( $built['tracks_data'] ) ) {
             $content .= '<section class="ty-album-tracklist"><h2>فهرست قطعه‌های آلبوم</h2><ol>';
@@ -990,6 +1144,7 @@ class TaranehYar_Post_Handler {
         update_post_meta( $post_id, 'talbume128', $this->download_file_url( $urldlhost, $archive_path, $album_name128 . '/' ) );
 
         wp_set_object_terms( $post_id, $artist, $this->singer_taxonomy() );
+        $content = $this->link_singer_in_content( $post_id, $content, $artist );
         wp_set_post_tags( $post_id, TaranehYar_SEO::tags_for( 'album', $artist, $artist_en, $song ) );
 
         /*
