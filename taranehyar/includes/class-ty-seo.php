@@ -32,32 +32,32 @@ class TaranehYar_SEO {
             'post_title'  => 'دانلود آهنگ {artist} به نام {track}',
             'title'       => 'دانلود آهنگ {artist} به نام {track} | {site}',
             'description' => 'دانلود آهنگ «{track}» از {artist}. {quality_sentence}',
-            'intro'       => 'آهنگ «{track}» از {artist}. {quality_sentence}',
-            'intro_en'    => '“{track_en}” by {artist_en}. {quality_sentence_en}',
+            'intro'       => 'آهنگ «{track}» از {artist}.',
+            'intro_en'    => '“{track_en}” by {artist_en}.',
             'focus'       => 'دانلود آهنگ {artist} {track}',
         ),
         'remix' => array(
             'post_title'  => 'دانلود ریمیکس {track} از {artist}',
             'title'       => 'دانلود ریمیکس {track} از {artist} | {site}',
             'description' => 'دانلود ریمیکس «{track}» از {artist}. {quality_sentence}',
-            'intro'       => 'ریمیکس «{track}» از {artist}. {quality_sentence}',
-            'intro_en'    => 'Remix: “{track_en}” by {artist_en}. {quality_sentence_en}',
+            'intro'       => 'ریمیکس «{track}» از {artist}.',
+            'intro_en'    => 'Remix: “{track_en}” by {artist_en}.',
             'focus'       => 'دانلود ریمیکس {artist} {track}',
         ),
         'nohe' => array(
             'post_title'  => 'دانلود مداحی {track} با صدای {artist}',
             'title'       => 'دانلود نوحه و مداحی {track} از {artist} | {site}',
             'description' => 'دانلود نوحه و مداحی «{track}» با صدای {artist}. {quality_sentence}',
-            'intro'       => 'نوحه/مداحی «{track}» با صدای {artist}. {quality_sentence}',
-            'intro_en'    => 'Devotional recitation: “{track_en}” by {artist_en}. {quality_sentence_en}',
+            'intro'       => 'نوحه/مداحی «{track}» با صدای {artist}.',
+            'intro_en'    => 'Devotional recitation: “{track_en}” by {artist_en}.',
             'focus'       => 'دانلود مداحی {artist} {track}',
         ),
         'video' => array(
             'post_title'  => 'دانلود موزیک ویدیو {artist} به نام {track}',
             'title'       => 'دانلود موزیک ویدیو {artist} به نام {track} | {site}',
             'description' => 'مشاهده و دانلود موزیک‌ویدیوی «{track}» از {artist}. {quality_sentence}',
-            'intro'       => 'موزیک‌ویدیوی «{track}» از {artist}. {quality_sentence}',
-            'intro_en'    => 'Music video: “{track_en}” by {artist_en}. {quality_sentence_en}',
+            'intro'       => 'موزیک‌ویدیوی «{track}» از {artist}.',
+            'intro_en'    => 'Music video: “{track_en}” by {artist_en}.',
             'focus'       => 'دانلود موزیک ویدیو {artist} {track}',
         ),
         'album' => array(
@@ -74,42 +74,42 @@ class TaranehYar_SEO {
     const ALT_INTRO_TEMPLATES = array(
         'music' => array(
             'fa' => array(
-                2 => 'در این نوشته، آهنگ «{track}» با صدای {artist} معرفی می‌شود. {quality_sentence}',
-                3 => 'نام اثر: «{track}» | خواننده: {artist}. {quality_sentence}',
+                2 => 'در این نوشته، آهنگ «{track}» با صدای {artist} معرفی می‌شود.',
+                3 => 'نام اثر: «{track}» | خواننده: {artist}.',
             ),
             'en' => array(
-                2 => 'This post introduces “{track_en}” by {artist_en}. {quality_sentence_en}',
-                3 => 'Track: “{track_en}” | Artist: {artist_en}. {quality_sentence_en}',
+                2 => 'This post introduces “{track_en}” by {artist_en}.',
+                3 => 'Track: “{track_en}” | Artist: {artist_en}.',
             ),
         ),
         'remix' => array(
             'fa' => array(
-                2 => 'ریمیکس «{track}» با اجرای {artist} معرفی می‌شود. {quality_sentence}',
-                3 => 'نام ریمیکس: «{track}» | هنرمند: {artist}. {quality_sentence}',
+                2 => 'ریمیکس «{track}» با اجرای {artist} معرفی می‌شود.',
+                3 => 'نام ریمیکس: «{track}» | هنرمند: {artist}.',
             ),
             'en' => array(
-                2 => 'This post introduces the remix “{track_en}” by {artist_en}. {quality_sentence_en}',
-                3 => 'Remix: “{track_en}” | Artist: {artist_en}. {quality_sentence_en}',
+                2 => 'This post introduces the remix “{track_en}” by {artist_en}.',
+                3 => 'Remix: “{track_en}” | Artist: {artist_en}.',
             ),
         ),
         'nohe' => array(
             'fa' => array(
-                2 => 'نوحه/مداحی «{track}» با صدای {artist} معرفی می‌شود. {quality_sentence}',
-                3 => 'عنوان نوحه: «{track}» | مداح: {artist}. {quality_sentence}',
+                2 => 'نوحه/مداحی «{track}» با صدای {artist} معرفی می‌شود.',
+                3 => 'عنوان نوحه: «{track}» | مداح: {artist}.',
             ),
             'en' => array(
-                2 => 'This post introduces the devotional recitation “{track_en}” by {artist_en}. {quality_sentence_en}',
-                3 => 'Recitation: “{track_en}” | Performer: {artist_en}. {quality_sentence_en}',
+                2 => 'This post introduces the devotional recitation “{track_en}” by {artist_en}.',
+                3 => 'Recitation: “{track_en}” | Performer: {artist_en}.',
             ),
         ),
         'video' => array(
             'fa' => array(
-                2 => 'موزیک‌ویدیوی «{track}» از {artist} معرفی می‌شود. {quality_sentence}',
-                3 => 'عنوان ویدیو: «{track}» | هنرمند: {artist}. {quality_sentence}',
+                2 => 'موزیک‌ویدیوی «{track}» از {artist} معرفی می‌شود.',
+                3 => 'عنوان ویدیو: «{track}» | هنرمند: {artist}.',
             ),
             'en' => array(
-                2 => 'This post introduces the music video “{track_en}” by {artist_en}. {quality_sentence_en}',
-                3 => 'Music video: “{track_en}” | Artist: {artist_en}. {quality_sentence_en}',
+                2 => 'This post introduces the music video “{track_en}” by {artist_en}.',
+                3 => 'Music video: “{track_en}” | Artist: {artist_en}.',
             ),
         ),
         'album' => array(
@@ -126,7 +126,16 @@ class TaranehYar_SEO {
 
     public function init() {
         add_filter( 'pre_get_document_title', array( $this, 'filter_document_title' ), 30 );
+        add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_content_styles' ) );
         add_action( 'wp_head', array( $this, 'render_head' ), 30 );
+    }
+
+    /** Load the release-card styles on single posts. */
+    public function enqueue_content_styles() {
+        if ( is_admin() || ! is_singular( 'post' ) ) {
+            return;
+        }
+        wp_enqueue_style( 'ty-release-content', TY_PLUGIN_URL . 'assets/css/content.css', array(), TY_VERSION );
     }
 
     public static function option_key( $type, $field ) {
@@ -180,9 +189,16 @@ class TaranehYar_SEO {
         }
         $options = function_exists( 'get_option' ) ? get_option( 'ty_options', array() ) : array();
         if ( is_array( $options ) && array_key_exists( $key, $options ) ) {
-            return is_scalar( $options[ $key ] ) ? (string) $options[ $key ] : '';
+            $template = is_scalar( $options[ $key ] ) ? (string) $options[ $key ] : '';
+        } else {
+            $template = self::default_intro_template( $type, $language, $variant );
         }
-        return self::default_intro_template( $type, $language, $variant );
+
+        // Legacy templates included formats in both the intro and the facts card.
+        $template = str_replace( array( '{quality_sentence}', '{quality_sentence_en}', '{qualities}' ), '', $template );
+        $template = preg_replace( '/[ \\t]+([.!?،؛])/u', '$1', $template );
+        $template = preg_replace( '/[ \\t]{2,}/u', ' ', $template );
+        return trim( $template );
     }
 
     public static function default_intro_variant( $type, $language ) {
@@ -224,12 +240,18 @@ class TaranehYar_SEO {
             'album' => '', 'album_en' => '', 'site' => '', 'qualities' => '',
             'quality_sentence' => '', 'quality_sentence_en' => '', 'track_count' => '', 'track_count_en' => '', 'info' => '', 'category' => '',
         ), $variables );
+        // File quality is rendered once in the structured facts card, not repeated in the intro copy.
+        $intro_variables = $variables;
+        $intro_variables['qualities'] = '';
+        $intro_variables['quality_sentence'] = '';
+        $intro_variables['quality_sentence_en'] = '';
         $result = array();
         foreach ( self::TEMPLATE_FIELDS as $field => $label ) {
             $template = isset( $overrides[ $field ] )
                 ? $overrides[ $field ]
                 : self::default_template( $type, $field );
-            $result[ $field ] = self::render_template( $template, $variables );
+            $field_variables = in_array( $field, array( 'intro', 'intro_en' ), true ) ? $intro_variables : $variables;
+            $result[ $field ] = self::render_template( $template, $field_variables );
         }
         return $result;
     }

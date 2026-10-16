@@ -4,7 +4,10 @@
  * Run with: php tests/test-seo.php
  */
 define( 'ABSPATH', __DIR__ . '/' );
+define( 'TY_PLUGIN_URL', 'https://example.test/plugins/taranehyar/' );
+define( 'TY_VERSION', '1.0.6' );
 $GLOBALS['ty_seo_test_options'] = array();
+$GLOBALS['ty_seo_test_styles'] = array();
 $GLOBALS['ty_seo_test_meta'] = array( 42 => array(
     'ty_seo_title' => 'عنوان SEO سفارشی',
     'ty_seo_description' => 'توضیحات ساخت‌یافته',
@@ -17,7 +20,11 @@ $GLOBALS['ty_seo_test_meta'] = array( 42 => array(
 function get_option( $key, $default = array() ) {
     return $key === 'ty_options' ? $GLOBALS['ty_seo_test_options'] : $default;
 }
+function wp_enqueue_style( $handle, $src, $deps = array(), $version = false ) {
+    $GLOBALS['ty_seo_test_styles'][ $handle ] = array( $src, $deps, $version );
+}
 function wp_unslash( $value ) { return $value; }
+function sanitize_key( $value ) { return strtolower( preg_replace( '/[^a-z0-9_\\-]/', '', (string) $value ) ); }
 function sanitize_text_field( $value ) { return trim( strip_tags( (string) $value ) ); }
 function is_admin() { return false; }
 function is_singular( $post_type = '' ) { return $post_type === 'post'; }
@@ -38,6 +45,7 @@ function is_wp_error( $value ) { return false; }
 function get_term( $id, $taxonomy ) { return (object) array( 'term_id' => $id, 'name' => $id === 13 ? 'ریمیکس' : 'موسیقی' ); }
 function get_category_link( $id ) { return 'https://example.test/category/' . $id . '/'; }
 function esc_html( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' ); }
+function esc_attr( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' ); }
 function esc_url( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' ); }
 function wpautop( $value ) { return '<p>' . $value . '</p>'; }
 class TaranehYar_Settings {
@@ -86,7 +94,16 @@ seo_ok( stripos( $remix['intro_en'], 'remix' ) !== false && strpos( $remix['intr
 seo_ok( stripos( $nohe['intro_en'], 'devotional recitation' ) !== false && strpos( $nohe['intro_en'], 'Test Artist' ) !== false, 'nohe gets a precise English devotional introduction' );
 seo_ok( strpos( $video['intro_en'], 'Music video:' ) === 0 && strpos( $video['intro_en'], 'Test Track' ) !== false, 'video gets an English introduction with its real title' );
 seo_ok( strpos( $album['intro_en'], 'Album entry:' ) === 0 && strpos( $album['intro_en'], 'Track count: 5' ) !== false, 'album English introduction uses the submitted album and numeric track count' );
-seo_ok( strpos( $remix['intro_en'], 'Available' ) === false && strpos( $remix['intro_en'], 'Submitted formats:' ) !== false, 'English post copy describes provided formats without claiming successful availability' );
+seo_ok( strpos( $remix['intro'] . $remix['intro_en'], '۱۲۸' ) === false && strpos( $remix['intro_en'], 'Submitted formats:' ) === false, 'Persian and English introductions keep file qualities out of the copy' );
+seo_ok( strpos( $remix['description'], 'فایل صوتی در دسترس است.' ) !== false, 'SEO description can retain the submitted quality sentence' );
+$legacy_quality_intro = TaranehYar_SEO::profile( 'remix', $vars, array(
+    'intro' => 'ریمیکس {track} از {artist}. {qualities} {quality_sentence}',
+    'intro_en' => 'Remix: {track_en} by {artist_en}. {qualities} {quality_sentence_en}',
+) );
+seo_ok( strpos( $legacy_quality_intro['intro'], 'کیفیت' ) === false && strpos( $legacy_quality_intro['intro'], '۱۲۸' ) === false && strpos( $legacy_quality_intro['intro_en'], 'Submitted formats:' ) === false && strpos( $legacy_quality_intro['intro_en'], '320' ) === false, 'legacy custom intro placeholders no longer repeat qualities' );
+$GLOBALS['ty_seo_test_options']['seo_intro_2_remix'] = 'ریمیکس {track} از {artist}. {qualities} {quality_sentence}';
+$cleaned_saved_intro = TaranehYar_SEO::intro_template( 'remix', 'fa', 2 );
+seo_ok( strpos( $cleaned_saved_intro, '{quality_sentence}' ) === false && strpos( $cleaned_saved_intro, '{qualities}' ) === false && substr( $cleaned_saved_intro, -1 ) === '.', 'saved legacy templates have quality placeholders removed cleanly' );
 seo_ok( strpos( $album['post_title'], 'دانلود آلبوم' ) !== false && strpos( $album['description'], '۵ قطعه' ) !== false, 'album template uses album name and track count' );
 seo_ok( strpos( $album['description'], 'لینک' ) === false && strpos( $album['description'], 'دانلود' ) === false, 'album description avoids claiming download availability before HostDL completes' );
 seo_ok( strpos( $remix['title'], '{artist}' ) === false && strpos( $remix['title'], '{track}' ) === false, 'known placeholders are fully substituted' );
@@ -109,6 +126,8 @@ seo_ok( in_array( 'دانلود نوحه', $nohe_tags, true ) && in_array( 'دا
 seo_ok( in_array( 'دانلود آهنگ', TaranehYar_SEO::tags_for( 'music', 'خواننده', '', 'قطعه' ), true ), 'single-track tags retain the song-download label' );
 
 $seo = new TaranehYar_SEO();
+$seo->enqueue_content_styles();
+seo_ok( isset( $GLOBALS['ty_seo_test_styles']['ty-release-content'] ) && $GLOBALS['ty_seo_test_styles']['ty-release-content'][0] === TY_PLUGIN_URL . 'assets/css/content.css', 'single-post pages enqueue the new release-card stylesheet' );
 seo_ok( $seo->filter_document_title( 'عنوان قالب' ) === 'عنوان SEO سفارشی', 'SEO title fallback applies when no SEO plugin owns the title' );
 $GLOBALS['ty_seo_test_options']['seo_title_tag_enabled'] = '0';
 seo_ok( $seo->filter_document_title( 'عنوان قالب' ) === 'عنوان قالب', 'document-title fallback can be disabled from settings' );
@@ -137,6 +156,25 @@ $remix_content = $call_private( 'release_content', array( 'remix', array( 'intro
 seo_ok( strpos( $remix_content, 'category/13/' ) !== false && strpos( $remix_content, 'مشاهدهٔ ریمیکس‌های بیشتر' ) !== false, 'remix post body links to the remix category with a type-specific label' );
 seo_ok( strpos( $remix_content, 'مشاهدهٔ آهنگ‌های بیشتر' ) === false, 'remix category link does not use the generic song label' );
 seo_ok( strpos( $remix_content, 'ty-lyrics-section' ) === false && strpos( $remix_content, 'متن ترانه' ) === false, 'lyrics are not duplicated into post content when stored in the separate music_txt field' );
+$credits = array( 'ترانه‌سرا' => 'شاعر آزمایشی', 'آهنگساز' => 'آهنگساز آزمایشی' );
+$about_with_credit_sentence = $call_private( 'about_text_without_duplicate_credits', array(
+    'صدای اثر آرام است. عوامل تولید: ترانه‌سرا: شاعر آزمایشی و آهنگساز: آهنگساز آزمایشی در ساخت آن همکاری کردند.',
+    $credits,
+) );
+seo_ok( $about_with_credit_sentence === 'صدای اثر آرام است.', 'complete credit sentences are removed while unrelated about text remains' );
+$unrelated_about = 'The song quality and lyricist discussion remains.';
+seo_ok( $call_private( 'about_text_without_duplicate_credits', array( $unrelated_about, array( 'songwriter' => 'Ali' ) ) ) === $unrelated_about, 'credit-name matching does not remove unrelated words containing the same letters' );
+$styled_content = $call_private( 'release_content', array(
+    'music',
+    array( 'intro' => 'معرفی فارسی', 'intro_en' => 'English introduction' ),
+    array( 'کیفیت‌های ورودی' => '۱۲۸ و ۳۲۰' ),
+    'صدای اثر آرام است. عوامل تولید: ترانه‌سرا: شاعر آزمایشی و آهنگساز: آهنگساز آزمایشی در ساخت آن همکاری کردند.',
+    $credits,
+    array(),
+) );
+seo_ok( strpos( $styled_content, 'ty-release-intro-card' ) !== false && strpos( $styled_content, 'ty-release-about' ) !== false && strpos( $styled_content, 'ty-release-facts' ) !== false, 'introduction, about text and structured facts render in distinct cards' );
+seo_ok( strpos( $styled_content, '</section><!--more-->' ) !== false, 'WordPress more marker follows the complete introduction card' );
+seo_ok( substr_count( $styled_content, 'شاعر آزمایشی' ) === 1 && substr_count( $styled_content, 'آهنگساز آزمایشی' ) === 1 && strpos( $styled_content, 'صدای اثر آرام است.' ) !== false, 'producer credits appear only once in facts while unrelated about text remains' );
 $localized_content = $call_private( 'release_content', array( 'nohe', array( 'intro' => 'متن فارسی', 'intro_en' => 'Download <script>alert(1)</script>.' ), array(), '', array(), array() ) );
 seo_ok( strpos( $localized_content, 'lang="en" dir="ltr"' ) !== false && strpos( $localized_content, '&lt;script&gt;' ) !== false, 'English introduction is visible, left-to-right, and safely escaped' );
 

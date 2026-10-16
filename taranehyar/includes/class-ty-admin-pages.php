@@ -135,7 +135,7 @@ class TaranehYar_Admin_Pages {
         $en_default = TaranehYar_SEO::default_intro_variant( $seo_type, 'en' );
 
         $this->card_open( '✍️ انتخاب متن فارسی و انگلیسی پست' );
-        echo '<p class="ty-hint">متن‌ها را یک‌بار در تنظیمات ← سئو، GEO و AIO می‌نویسید. در هر نوشته فقط الگو را انتخاب کنید؛ نام خواننده، نام اثر و کیفیت‌های ارسالی خودکار جایگزین می‌شوند. گزینه‌ها متن کامل هر الگو را نشان می‌دهند.</p>';
+        echo '<p class="ty-hint">متن‌ها را یک‌بار در تنظیمات ← سئو، GEO و AIO می‌نویسید. در هر نوشته فقط الگو را انتخاب کنید؛ نام خواننده و اثر خودکار جایگزین می‌شوند. کیفیت‌ها در باکس مشخصات اثر جداگانه نمایش داده می‌شوند تا متن معرفی تکراری نشود.</p>';
         echo '<div class="ty-grid ty-grid-2">';
         $this->field( 'متن فارسی نوشته', $this->copy_template_select( $seo_type, 'fa', 'post_text_fa', $fa_default ) );
         $this->field( 'English post text', $this->copy_template_select( $seo_type, 'en', 'post_text_en', $en_default ) );

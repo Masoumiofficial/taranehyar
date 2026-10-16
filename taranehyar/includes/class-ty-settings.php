@@ -130,7 +130,7 @@ class TaranehYar_Settings {
         }
 
         echo '<div class="ty-copy-template-settings">';
-        echo '<p class="ty-hint">قالب‌ها را یک‌بار اینجا تنظیم کنید؛ نام خواننده، اثر و کیفیت‌های واردشده هنگام ساخت پست خودکار جایگزین می‌شوند. در فرم ارسال فقط متن ذخیره‌شده را انتخاب می‌کنید.</p>';
+        echo '<p class="ty-hint">قالب‌ها را یک‌بار اینجا تنظیم کنید؛ نام خواننده و اثر هنگام ساخت پست خودکار جایگزین می‌شوند. کیفیت فایل‌ها در باکس مشخصات اثر نمایش داده می‌شود و در متن معرفی تکرار نمی‌شود.</p>';
         foreach ( array( 'fa' => 'فارسی', 'en' => 'English' ) as $language => $language_label ) {
             echo '<section class="ty-copy-template-language" lang="' . esc_attr( $language === 'en' ? 'en' : 'fa' ) . '">';
             echo '<h3>' . esc_html( 'قالب‌های متن ' . $language_label ) . '</h3>';

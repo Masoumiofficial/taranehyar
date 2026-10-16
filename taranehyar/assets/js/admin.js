@@ -42,19 +42,6 @@
         var track = fieldValue( form, album ? 'song' : 'track' );
         var artistEn = fieldValue( form, album ? 'artist_en' : 'enname' );
         var trackEn = fieldValue( form, album ? 'song_en' : 'entrack' );
-        var qualities = [];
-        var qualitiesEn = [];
-        var qualityFields = type === 'video'
-            ? [ [ 'link1080', '۱۰۸۰p', '1080p video' ], [ 'link720', '۷۲۰p', '720p video' ], [ 'link480', '۴۸۰p', '480p video' ], [ 'link320', 'صوتی', 'MP3 audio' ] ]
-            : [ [ 'link320', '۳۲۰', '320 kbps MP3' ], [ 'link128', '۱۲۸', '128 kbps MP3' ] ];
-
-        qualityFields.forEach( function ( item ) {
-            if ( fieldValue( form, item[0] ) || fieldValue( form, item[0] === 'link320' ? 'filelink320' : ( item[0] === 'link128' ? 'filelink128' : item[0] ) ) ) {
-                qualities.push( item[1] );
-                qualitiesEn.push( item[2] );
-            }
-        } );
-
         var trackCount = 0;
         if ( album && form.querySelectorAll ) {
             form.querySelectorAll( 'input[name^="track_name_"]' ).forEach( function ( input ) {
@@ -70,8 +57,9 @@
             album_en: album ? trackEn : '',
             track_count: album ? persianDigits( trackCount ) : '',
             track_count_en: album ? String( trackCount ) : '',
-            quality_sentence: qualities.length ? 'کیفیت‌های واردشده: ' + qualities.join( ' و ' ) + '.' : '',
-            quality_sentence_en: qualitiesEn.length ? 'Submitted formats: ' + qualitiesEn.join( ' and ' ) + '.' : ''
+            // کیفیت در کارت مشخصات نمایش داده می‌شود تا در متن معرفی تکرار نشود.
+            quality_sentence: '',
+            quality_sentence_en: ''
         };
     }
 

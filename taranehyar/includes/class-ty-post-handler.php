@@ -315,34 +315,92 @@ class TaranehYar_Post_Handler {
         }
     }
 
+    /** Remove sentences/fragments that repeat credits already listed in the facts card. */
+    private function about_text_without_duplicate_credits( $info, array $credits ) {
+        $info = trim( (string) $info );
+        if ( $info === '' || empty( $credits ) ) return $info;
+
+        $credit_values = array();
+        foreach ( $credits as $value ) {
+            if ( is_scalar( $value ) && trim( (string) $value ) !== '' ) {
+                $credit_values[] = trim( (string) $value );
+            }
+        }
+        $credit_values = array_values( array_unique( $credit_values ) );
+        if ( empty( $credit_values ) ) return $info;
+
+        $credit_labels = array(
+            'ترانه‌سرایی', 'ترانه سرایی', 'ترانه‌سرا', 'ترانه سرا', 'ترانه', 'شاعر',
+            'آهنگسازی', 'آهنگ‌سازی', 'آهنگ سازی', 'آهنگساز', 'آهنگ',
+            'تنظیم‌کننده', 'تنظیم کننده', 'تنظیم',
+            'میکس و مسترینگ', 'میکس‌ومسترینگ', 'میکس', 'مسترینگ',
+            'songwriter', 'lyricist', 'composer', 'arranger', 'mixing', 'mastering',
+        );
+        $segments = preg_split( '/(?<=[.!?؟])\\s+|[,،;؛|\\r\\n]+/u', $info );
+        if ( ! is_array( $segments ) ) return $info;
+
+        $kept = array();
+        foreach ( $segments as $segment ) {
+            $segment = trim( $segment );
+            if ( $segment === '' ) continue;
+
+            $has_credit_label = false;
+            foreach ( $credit_labels as $label ) {
+                if ( stripos( $segment, $label ) !== false ) {
+                    $has_credit_label = true;
+                    break;
+                }
+            }
+            $has_credit_value = false;
+            foreach ( $credit_values as $value ) {
+                $pattern = '/(?<![\\p{L}\\p{N}])' . preg_quote( $value, '/' ) . '(?![\\p{L}\\p{N}])/iu';
+                $matched = preg_match( $pattern, $segment );
+                if ( $matched === 1 || ( $matched === false && stripos( $segment, $value ) !== false ) ) {
+                    $has_credit_value = true;
+                    break;
+                }
+            }
+            if ( $has_credit_label && $has_credit_value ) continue;
+
+            // Also remove bare role/name fragments, while leaving unrelated prose intact.
+            $remaining = $segment;
+            foreach ( $credit_values as $value ) {
+                $remaining = str_replace( $value, '', $remaining );
+            }
+            foreach ( $credit_labels as $label ) {
+                $remaining = str_ireplace( $label, '', $remaining );
+            }
+            $remaining = preg_replace( '/[\\s\\p{P}\\p{S}]+/u', '', $remaining );
+            if ( $remaining === '' ) continue;
+            $kept[] = $segment;
+        }
+        return implode( '، ', $kept );
+    }
+
     /** Build human-readable, escaped post content from the submitted facts. */
     private function release_content( $type, array $seo, array $details, $info = '', array $credits = array(), array $category = array() ) {
-        $content = '<article class="ty-release-content">';
-        if ( $seo['intro'] !== '' ) {
-            $content .= '<div class="ty-release-intro" lang="fa" dir="rtl">' . wpautop( esc_html( $seo['intro'] ) ) . '</div><!--more-->';
-        }
-        if ( ! empty( $seo['intro_en'] ) ) {
-            $content .= '<div class="ty-release-intro ty-release-intro-en" lang="en" dir="ltr">' . wpautop( esc_html( $seo['intro_en'] ) ) . '</div>';
-        }
-        if ( trim( (string) $info ) !== '' ) {
-            $content .= '<section><h2>درباره اثر</h2><p>' . esc_html( $info ) . '</p></section>';
-        }
-        if ( TaranehYar_Settings::get( 'seo_category_links_enabled', '1' ) === '1' && ! empty( $category['url'] ) ) {
-            $labels = array(
-                'music' => 'مشاهدهٔ آهنگ‌های بیشتر',
-                'remix' => 'مشاهدهٔ ریمیکس‌های بیشتر',
-                'nohe'  => 'مشاهدهٔ نوحه و مداحی‌های بیشتر',
-                'video' => 'مشاهدهٔ موزیک‌ویدیوهای بیشتر',
-                'album' => 'مشاهدهٔ آلبوم‌های بیشتر',
-            );
-            $link_label = isset( $labels[ $type ] ) ? $labels[ $type ] : 'مشاهدهٔ مطالب مرتبط';
-            if ( ! empty( $category['name'] ) ) {
-                $link_label .= ' در دستهٔ ' . $category['name'];
+        $content = '<article class="ty-release-content ty-release-content--' . esc_attr( sanitize_key( $type ) ) . '">';
+
+        if ( $seo['intro'] !== '' || ! empty( $seo['intro_en'] ) ) {
+            $content .= '<section class="ty-release-card ty-release-intro-card" aria-label="معرفی اثر">';
+            if ( $seo['intro'] !== '' ) {
+                $content .= '<div class="ty-release-intro ty-release-intro-fa" lang="fa" dir="rtl">' . wpautop( esc_html( $seo['intro'] ) ) . '</div>';
             }
-            $content .= '<p class="ty-category-link"><a href="' . esc_url( $category['url'] ) . '">' . esc_html( $link_label ) . '</a></p>';
+            if ( ! empty( $seo['intro_en'] ) ) {
+                $content .= '<div class="ty-release-intro ty-release-intro-en" lang="en" dir="ltr">' . wpautop( esc_html( $seo['intro_en'] ) ) . '</div>';
+            }
+            $content .= '</section><!--more-->';
         }
 
-        if ( TaranehYar_Settings::get( 'seo_visible_details_enabled', '1' ) === '1' ) {
+        $show_facts = TaranehYar_Settings::get( 'seo_visible_details_enabled', '1' ) === '1';
+        $about_text = $show_facts
+            ? $this->about_text_without_duplicate_credits( $info, $credits )
+            : trim( (string) $info );
+        if ( $about_text !== '' ) {
+            $content .= '<section class="ty-release-card ty-release-about"><h2>دربارهٔ اثر</h2><div class="ty-release-about-text">' . wpautop( esc_html( $about_text ) ) . '</div></section>';
+        }
+
+        if ( $show_facts ) {
             $rows = '';
             foreach ( $details as $label => $value ) {
                 if ( is_scalar( $value ) && trim( (string) $value ) !== '' ) {
@@ -355,8 +413,23 @@ class TaranehYar_Post_Handler {
                 }
             }
             if ( $rows !== '' ) {
-                $content .= '<section class="ty-release-facts"><h2>مشخصات اثر</h2><dl>' . $rows . '</dl></section>';
+                $content .= '<section class="ty-release-card ty-release-facts"><h2>مشخصات اثر</h2><dl>' . $rows . '</dl></section>';
             }
+        }
+
+        if ( TaranehYar_Settings::get( 'seo_category_links_enabled', '1' ) === '1' && ! empty( $category['url'] ) ) {
+            $labels = array(
+                'music' => 'مشاهدهٔ آهنگ‌های بیشتر',
+                'remix' => 'مشاهدهٔ ریمیکس‌های بیشتر',
+                'nohe'  => 'مشاهدهٔ نوحه و مداحی‌های بیشتر',
+                'video' => 'مشاهدهٔ موزیک‌ویدیوهای بیشتر',
+                'album' => 'مشاهدهٔ آلبوم‌های بیشتر',
+            );
+            $link_label = isset( $labels[ $type ] ) ? $labels[ $type ] : 'مشاهدهٔ مطالب مرتبط';
+            if ( ! empty( $category['name'] ) ) {
+                $link_label .= ' در دستهٔ ' . $category['name'];
+            }
+            $content .= '<p class="ty-category-link"><a href="' . esc_url( $category['url'] ) . '"><span class="ty-category-link-icon" aria-hidden="true">♪</span><span>' . esc_html( $link_label ) . '</span><span class="ty-category-link-arrow" aria-hidden="true">←</span></a></p>';
         }
 
         return $content . '</article>';
