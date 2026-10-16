@@ -4,7 +4,7 @@ Tags: music, publisher, download, album, iranian
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.2
-Stable tag: 1.0.7
+Stable tag: 1.0.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -58,6 +58,11 @@ License URI: https://www.gnu.org/licenses/gpl-2.0.html
 پشتیبانی محصول شامل نصب، پیکربندی و رفع باگ‌ها می‌شود (۶ ماه از تاریخ خرید). سفارشی‌سازی قالب/افزونه خارج از پشتیبانی است. راه ارتباط: https://sajadmasoumi.com
 
 == Changelog ==
+
+= 1.0.8 =
+* وسط‌چین‌کردن محتوای کارت‌ها و جداسازی واضح برچسب/مقدار مشخصات اثر
+* افزودن پیوند داخلی روی نام خواننده و کلیدواژهٔ اثر و حذف CTA مستقل دسته
+* ساخت عنوان پویای «دربارهٔ اثر» متناسب با نام اثر/خواننده و حذف نقطهٔ پایانی معرفی انگلیسی
 
 = 1.0.7 =
 * نمایش کارت‌محور و واکنش‌گرای متن معرفی، اطلاعات آزاد و مشخصات ساختاریافتهٔ اثر

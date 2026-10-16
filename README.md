@@ -2,13 +2,13 @@
 
 پنل حرفه‌ای ارسال پست موزیک، ریمیکس، نوحه، موزیک ویدیو، آلبوم و لیچ فایل برای سایت‌های موزیک وردپرسی.
 
-**نسخه فعلی:** 1.0.7 · **لایسنس:** GPL-2.0-or-later · **نویسنده:** [سجاد معصومی](https://sajadmasoumi.com)
+**نسخه فعلی:** 1.0.8 · **لایسنس:** GPL-2.0-or-later · **نویسنده:** [سجاد معصومی](https://sajadmasoumi.com)
 
-## دانلود مستقیم نسخهٔ 1.0.7
+## دانلود مستقیم نسخهٔ 1.0.8
 
-- [ZIP افزونهٔ وردپرس](https://github.com/Masoumiofficial/taranehyar/releases/download/v1.0.7/taranehyar-v1.0.7.zip)
-- [ZIP هاست دانلود](https://github.com/Masoumiofficial/taranehyar/releases/download/v1.0.7/taranehyar-hostdl-v1.0.7.zip)
-- [PDF راهنمای نصب فارسی](https://github.com/Masoumiofficial/taranehyar/releases/download/v1.0.7/taranehyar-install-guide-fa-v1.0.7.pdf)
+- [ZIP افزونهٔ وردپرس](https://github.com/Masoumiofficial/taranehyar/releases/download/v1.0.8/taranehyar-v1.0.8.zip)
+- [ZIP هاست دانلود](https://github.com/Masoumiofficial/taranehyar/releases/download/v1.0.8/taranehyar-hostdl-v1.0.8.zip)
+- [آخرین PDF راهنمای نصب منتشرشده (نسخهٔ 1.0.7)](https://github.com/Masoumiofficial/taranehyar/releases/download/v1.0.7/taranehyar-install-guide-fa-v1.0.7.pdf)
 
 ## ساختار مخزن
 
@@ -54,7 +54,7 @@ gh workflow run release.yml -f mode=publish -f target=v1.0.0
 gh workflow run release.yml -f mode=publish -f draft=true
 ```
 
-> برای انتشار نسخه جدید: هدر `Version:` افزونه، `Stable tag:` در `readme.txt` و بخش `## <نسخه>` در `CHANGELOG.md` را یکسان کنید، سپس برچسب نسخهٔ جدید را روی commit انتشار بسازید و push کنید (نسخهٔ فعلی: `v1.0.7`).
+> برای انتشار نسخه جدید: هدر `Version:` افزونه، `Stable tag:` در `readme.txt` و بخش `## <نسخه>` در `CHANGELOG.md` را یکسان کنید، سپس برچسب نسخهٔ جدید را روی commit انتشار بسازید و push کنید (نسخهٔ فعلی: `v1.0.8`).
 
 ## ساخت بسته انتشار
 
