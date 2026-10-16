@@ -64,6 +64,7 @@ jobs:
           php tests/test-settings.php
           php tests/test-queue.php
           php tests/test-album-meta.php
+          php tests/test-seo.php
 
   build:
     name: ساخت بسته‌های انتشار
@@ -80,6 +81,7 @@ jobs:
           set -euo pipefail
           unzip -l dist/taranehyar.zip | grep -q 'taranehyar/taranehyar\.php'
           unzip -l dist/taranehyar.zip | grep -q 'includes/class-ty-archive.php'
+          unzip -l dist/taranehyar.zip | grep -q 'includes/class-ty-seo.php'
           unzip -l dist/taranehyar.zip | grep -q 'hostdl/bootstrap.php'
           unzip -l dist/taranehyar.zip | grep -q 'hostdl/getid3/getid3.php'
           unzip -l dist/taranehyar-hostdl.zip | grep -q 'hostdl/curl-music.php'

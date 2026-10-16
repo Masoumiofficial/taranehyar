@@ -15,6 +15,9 @@ function sanitize_key($key) {
 function sanitize_text_field($text) {
     return trim(strip_tags((string) $text));
 }
+function sanitize_textarea_field($text) {
+    return trim(strip_tags((string) $text));
+}
 
 require __DIR__ . '/../taranehyar/includes/class-ty-settings.php';
 
@@ -44,6 +47,22 @@ $clean = $settings->sanitize(array(
 ));
 settings_ok($clean['meta_key_artist_en'] === 'artistencustom', 'metadata setting is sanitized as a key');
 settings_ok($clean['singer_taxonomy'] === 'singertype', 'taxonomy setting is sanitized as a key');
+
+$seo_clean = $settings->sanitize(array(
+    'seo_title_remix' => 'دانلود ریمیکس {track} از {artist}',
+    'seo_intro_nohe' => "متن نوحه\nبا جزئیات",
+    'seo_title_tag_enabled' => '1',
+    'seo_meta_description_enabled' => '1',
+    'seo_jsonld_enabled' => '1',
+    'seo_album_tracklist_enabled' => 'invalid',
+));
+settings_ok($seo_clean['seo_title_remix'] === 'دانلود ریمیکس {track} از {artist}', 'SEO templates retain supported placeholders');
+settings_ok($seo_clean['seo_intro_nohe'] === "متن نوحه\nبا جزئیات", 'intro templates keep multiline text safely');
+settings_ok($seo_clean['seo_title_tag_enabled'] === '1', 'document title fallback toggle accepts enabled state');
+settings_ok($seo_clean['seo_meta_description_enabled'] === '1', 'base description meta toggle accepts enabled state');
+settings_ok($seo_clean['seo_jsonld_enabled'] === '1', 'JSON-LD toggle accepts enabled state');
+settings_ok($seo_clean['seo_album_tracklist_enabled'] === '0', 'invalid checkbox values sanitize to disabled');
+settings_ok(isset($seo_clean['seo_title_music'], $seo_clean['seo_description_album']), 'SEO template settings are registered for all content groups');
 
 echo $fails === 0 ? "\nALL TESTS PASSED\n" : "\n$fails TEST(S) FAILED\n";
 exit($fails === 0 ? 0 : 1);

@@ -501,6 +501,34 @@
     box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
+.ty-settings-table input.ty-seo-template,
+.ty-settings-table textarea.ty-seo-template {
+    width: 100%;
+    max-width: 640px;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'Estedad', Tahoma, sans-serif;
+    font-size: 14px;
+    padding: 10px 14px;
+    direction: rtl;
+    text-align: right;
+    outline: none;
+}
+
+.ty-settings-table textarea.ty-seo-template {
+    min-height: 76px;
+    resize: vertical;
+    line-height: 1.7;
+}
+
+.ty-settings-table input.ty-seo-template:focus,
+.ty-settings-table textarea.ty-seo-template:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
 /* ── Scrollbar ── */
 .ty-wrap ::-webkit-scrollbar { width: 6px; }
 .ty-wrap ::-webkit-scrollbar-track { background: transparent; }

@@ -33,6 +33,13 @@ class TaranehYar_Settings {
         'meta_key_music128','meta_key_music320','meta_key_album',
         'meta_key_album128','meta_key_album320','meta_key_video480p',
         'meta_key_video720p','meta_key_video1080p','meta_key_fifu_image_alt',
+        'seo_title_tag_enabled','seo_meta_description_enabled','seo_jsonld_enabled','seo_category_links_enabled','seo_visible_details_enabled',
+        'seo_include_lyrics','seo_album_tracklist_enabled',
+        'seo_post_title_music','seo_title_music','seo_description_music','seo_intro_music','seo_focus_music',
+        'seo_post_title_remix','seo_title_remix','seo_description_remix','seo_intro_remix','seo_focus_remix',
+        'seo_post_title_nohe','seo_title_nohe','seo_description_nohe','seo_intro_nohe','seo_focus_nohe',
+        'seo_post_title_video','seo_title_video','seo_description_video','seo_intro_video','seo_focus_video',
+        'seo_post_title_album','seo_title_album','seo_description_album','seo_intro_album','seo_focus_album',
     );
 
     public function init() {
@@ -55,8 +62,12 @@ class TaranehYar_Settings {
         $clean = array();
         foreach ( self::ALL_KEYS as $k ) {
             $value = isset( $input[ $k ] ) && is_scalar( $input[ $k ] ) ? (string) $input[ $k ] : '';
-            if ( $k === 'singer_taxonomy' || strpos( $k, 'meta_key_' ) === 0 ) {
+            if ( in_array( $k, array( 'seo_title_tag_enabled', 'seo_meta_description_enabled', 'seo_jsonld_enabled', 'seo_category_links_enabled', 'seo_visible_details_enabled', 'seo_include_lyrics', 'seo_album_tracklist_enabled' ), true ) ) {
+                $clean[ $k ] = $value === '1' ? '1' : '0';
+            } elseif ( $k === 'singer_taxonomy' || strpos( $k, 'meta_key_' ) === 0 ) {
                 $clean[ $k ] = sanitize_key( $value );
+            } elseif ( strpos( $k, 'seo_intro_' ) === 0 ) {
+                $clean[ $k ] = sanitize_textarea_field( $value );
             } else {
                 $clean[ $k ] = sanitize_text_field( $value );
             }
@@ -67,7 +78,18 @@ class TaranehYar_Settings {
     private function row( $opts, $key, $label, $placeholder = '', $default_value = '' ) {
         $value = isset( $opts[ $key ] ) && $opts[ $key ] !== '' ? $opts[ $key ] : $default_value;
         $val = esc_attr( $value );
-        echo '<tr><th>' . esc_html( $label ) . '</th><td><input type="text" name="ty_options[' . esc_attr( $key ) . ']" value="' . $val . '" placeholder="' . esc_attr( $placeholder ) . '"></td></tr>';
+        $class = strpos( $key, 'seo_' ) === 0 ? ' class="ty-seo-template"' : '';
+        echo '<tr><th>' . esc_html( $label ) . '</th><td><input type="text"' . $class . ' name="ty_options[' . esc_attr( $key ) . ']" value="' . $val . '" placeholder="' . esc_attr( $placeholder ) . '"></td></tr>';
+    }
+
+    private function textarea_row( $opts, $key, $label, $placeholder = '', $default_value = '' ) {
+        $value = isset( $opts[ $key ] ) && $opts[ $key ] !== '' ? $opts[ $key ] : $default_value;
+        echo '<tr><th><label for="' . esc_attr( $key ) . '">' . esc_html( $label ) . '</label></th><td><textarea class="ty-seo-template" id="' . esc_attr( $key ) . '" name="ty_options[' . esc_attr( $key ) . ']" rows="3" placeholder="' . esc_attr( $placeholder ) . '">' . esc_textarea( $value ) . '</textarea></td></tr>';
+    }
+
+    private function checkbox_row( $opts, $key, $label, $default = '1' ) {
+        $value = isset( $opts[ $key ] ) ? (string) $opts[ $key ] : $default;
+        echo '<tr><th>' . esc_html( $label ) . '</th><td><input type="hidden" name="ty_options[' . esc_attr( $key ) . ']" value="0"><label><input type="checkbox" name="ty_options[' . esc_attr( $key ) . ']" value="1" ' . checked( $value, '1', false ) . '> فعال</label></td></tr>';
     }
 
     public function render_settings_page() {
@@ -132,6 +154,37 @@ class TaranehYar_Settings {
                 </div>
 
                 <div class="ty-card">
+                    <div class="ty-card-title">🔎 سئو، GEO و AIO</div>
+                    <p class="ty-hint">عنوان نوشته، عنوان SEO، توضیحات متا، متن آغازین و عبارت کانونی برای هر نوع محتوا جداگانه قابل تنظیم است. الگوها فقط روی پست‌های جدید اثر دارند؛ تنظیمات سراسری تغییر نمی‌کنند و در Yoast، Rank Math و SEOPress فقط متادیتای همان پست مقداردهی می‌شود. جای‌نگهدارها: <code>{artist}</code>، <code>{track}</code>، <code>{album}</code>، <code>{artist_en}</code>، <code>{track_en}</code>، <code>{album_en}</code>، <code>{site}</code>، <code>{qualities}</code>، <code>{quality_sentence}</code>، <code>{track_count}</code> و <code>{info}</code>. جای‌نگهدار نامرتبط با نوع محتوا خالی جایگزین می‌شود.</p>
+                    <table class="ty-settings-table">
+                        <?php
+                        $this->checkbox_row( $opts, 'seo_title_tag_enabled', 'استفاده از عنوان SEO در تگ title (فقط در نبود افزونهٔ SEO شناخته‌شده)' );
+                        $this->checkbox_row( $opts, 'seo_meta_description_enabled', 'متای توضیحات پایه (فقط در نبود افزونهٔ SEO شناخته‌شده)' );
+                        $this->checkbox_row( $opts, 'seo_jsonld_enabled', 'خروجی Schema.org برای موزیک، آلبوم و ویدیو' );
+                        $this->checkbox_row( $opts, 'seo_category_links_enabled', 'پیوند داخلی به دسته‌بندی مرتبط در متن پست' );
+                        $this->checkbox_row( $opts, 'seo_visible_details_enabled', 'نمایش مشخصات ساخت‌یافتهٔ اثر و عوامل' );
+                        $this->checkbox_row( $opts, 'seo_include_lyrics', 'نمایش متن ترانه در متن پست (اگر وارد شده باشد)' );
+                        $this->checkbox_row( $opts, 'seo_album_tracklist_enabled', 'نمایش فهرست ترک و لینک‌های ۱۲۸/۳۲۰ در متن آلبوم' );
+                        ?>
+                    </table>
+                    <?php foreach ( TaranehYar_SEO::CONTENT_TYPES as $seo_type => $seo_type_label ) : ?>
+                        <h3><?php echo esc_html( $seo_type_label ); ?></h3>
+                        <table class="ty-settings-table">
+                            <?php foreach ( TaranehYar_SEO::TEMPLATE_FIELDS as $field => $field_label ) :
+                                $option_key = TaranehYar_SEO::option_key( $seo_type, $field );
+                                $default_template = TaranehYar_SEO::default_template( $seo_type, $field );
+                                if ( $field === 'intro' ) {
+                                    $this->textarea_row( $opts, $option_key, $field_label, $default_template, $default_template );
+                                } else {
+                                    $this->row( $opts, $option_key, $field_label, $default_template, $default_template );
+                                }
+                            endforeach; ?>
+                        </table>
+                    <?php endforeach; ?>
+                    <p class="ty-hint">این ابزارها محتوای یکتا و دادهٔ معنایی تولید می‌کنند؛ جایگزین محتوای واقعی یا تضمین رتبه نیستند. قالب HTML از ورودی‌های کاربر ساخته و escape می‌شود.</p>
+                </div>
+
+                <div class="ty-card">
                     <div class="ty-card-title">🧩 سازگاری با قالب (کلیدهای متا و تکسونومی)</div>
                     <table class="ty-settings-table">
                         <?php
@@ -142,7 +195,7 @@ class TaranehYar_Settings {
                         }
                         ?>
                     </table>
-                    <p class="ty-hint">💡 کلیدهای پیش‌فرض با نام‌های رایج قالب‌های موزیک تنظیم شده‌اند. در متادیتای آلبوم، کلید <code>album</code> (یا کلید سفارشی تنظیم‌شده در همین بخش) اکنون <strong>تعداد ترک‌ها به‌صورت عدد</strong> است؛ آرایهٔ قدیمی ترک‌ها برای سازگاری در <code>album_dl</code> ذخیره می‌شود. مشخصات هر ترک نیز در کلیدهای <code>album_0_song_names</code>، <code>album_0_albumlink128</code> و <code>album_0_albumlink320</code> و به همین ترتیب برای اندیس‌های بعدی نوشته می‌شود. در صورت نیاز، نام کلیدهای متا و تکسونومی خواننده را با قالب خود هماهنگ کنید.</p>
+                    <p class="ty-hint">💡 کلیدهای پیش‌فرض با نام‌های رایج قالب‌های موزیک تنظیم شده‌اند. در متادیتای آلبوم، کلید <code>album</code> (یا کلید سفارشی تنظیم‌شده در همین بخش) <strong>تعداد ترک‌ها به‌صورت عدد</strong> است؛ آرایهٔ قدیمی ترک‌ها برای سازگاری در <code>album_dl</code> ذخیره می‌شود. مشخصات هر ترک از اندیس یک‌مبنا، یعنی <code>album_1_song_names</code>، <code>album_1_albumlink128</code> و <code>album_1_albumlink320</code> تا حداکثر ترک ۱۵ نوشته می‌شود. در صورت نیاز، نام کلیدهای متا و تکسونومی خواننده را با قالب خود هماهنگ کنید.</p>
                 </div>
 
                 <div class="ty-card">

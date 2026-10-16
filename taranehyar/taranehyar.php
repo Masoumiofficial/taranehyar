@@ -3,7 +3,7 @@
  * Plugin Name:       ترانه‌یار | TaranehYar
  * Plugin URI:        https://sajadmasoumi.com
  * Description:       پنل حرفه‌ای ارسال پست موزیک، ریمیکس، نوحه، موزیک ویدیو، آلبوم و لیچ فایل برای سایت‌های موزیک وردپرسی
- * Version:           1.0.3
+ * Version:           1.0.4
  * Author:            سجاد معصومی
  * Author URI:        https://sajadmasoumi.com
  * License:           GPL-2.0-or-later
@@ -18,10 +18,11 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'TY_VERSION', '1.0.3' );
+define( 'TY_VERSION', '1.0.4' );
 define( 'TY_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'TY_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
+require_once TY_PLUGIN_DIR . 'includes/class-ty-seo.php';
 require_once TY_PLUGIN_DIR . 'includes/class-ty-settings.php';
 require_once TY_PLUGIN_DIR . 'includes/class-ty-http.php';
 require_once TY_PLUGIN_DIR . 'includes/class-ty-queue.php';
@@ -33,6 +34,9 @@ require_once TY_PLUGIN_DIR . 'includes/class-ty-post-handler.php';
 function ty_init() {
     $settings = new TaranehYar_Settings();
     $settings->init();
+
+    $seo = new TaranehYar_SEO();
+    $seo->init();
 
     $queue = new TaranehYar_Queue();
     $queue->init();

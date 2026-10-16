@@ -2,36 +2,15 @@
 /**
  * ساخت متادیتای آلبوم مطابق ساختار قالب — بدون وابستگی به وردپرس (قابل تست).
  *
- * ساختار نهایی ذخیره‌شده روی پست:
- *  - `album`                 تعداد ترک‌های واردشده (عدد؛ مثلاً ۱۱ ترک ← 11)
- *  - `artist`                نام فارسی خواننده از فرم آلبوم
- *  - `song`                  نام فارسی آلبوم از فرم آلبوم
- *  - `musics_type`           مقدار `album`
- *  - `plym`                  مقدار عددی 0
- *  - `album_{i}_song_names`    نام ترکِ i (اندیس صفرمبنا و پیوسته)
- *  - `album_{i}_albumlink128`  نشانی مقصد فایل ۱۲۸ همان ترک روی هاست دانلود
- *  - `album_{i}_albumlink320`  نشانی مقصد فایل ۳۲۰ همان ترک روی هاست دانلود
- *  - آرایهٔ قدیمی ترک‌ها (title / al_url320 / al_url128) برای `album_dl`
- *
- * نکته: نشانی‌های ترک‌ها از مقصد واقعی فایل‌های HostDL ساخته می‌شوند
- * (کیفیت ۱۲۸ در پوشهٔ `[128]` با پسوند ` [128].mp3` و کیفیت ۳۲۰ در پوشهٔ `[320]`)
- * و هیچ نشانی نمونه‌ای در کد hardcode نشده است.
+ * اندیس متاهای ترک برای قالب از ۱ شروع می‌شود: album_1_... تا album_N_...
+ * آرایهٔ تاریخی ترک‌ها برای سازگاری در `album_dl` حفظ می‌شود.
  */
-
 class TaranehYar_Album_Meta {
 
     /** بیشینهٔ ترک‌های فرم آلبوم (هم‌سان با endpoint هاست دانلود) */
     const MAX_TRACKS = 15;
 
-    /**
-     * پیوند نام فایل به نشانی پایهٔ هاست دانلود و مسیر آرشیو.
-     * همان قرارداد URL مقصد فایل‌های HostDL است.
-     *
-     * @param string $host         نشانی هاست دانلود (مثلاً https://dl.example.ir)
-     * @param string $archive_path مسیر آرشیو (مثلاً album/a/artist-slug)
-     * @param string $filename     نام فایل نسبی داخل آرشیو
-     * @return string
-     */
+    /** ساخت URL مقصد یک فایل در هاست دانلود. */
     public static function file_url( $host, $archive_path, $filename ) {
         $base = rtrim( (string) $host, '/' );
         $path = trim( (string) $archive_path, '/' );
@@ -44,21 +23,9 @@ class TaranehYar_Album_Meta {
     }
 
     /**
-     * ساخت متاهای آلبوم از فهرست ترک‌های واردشده.
-     *
-     * @param array  $tracks       ترک‌های واردشده به ترتیب فرم؛ هر عنوان:
-     *                             array( 'title' => نام ترک, 'file' => نام فایل پایهٔ HostDL )
-     *                             (عنوان‌های خالی حذف و اندیس‌ها پیوسته نگه داشته می‌شوند)
-     * @param string $artist       نام فارسی خواننده از فرم آلبوم
-     * @param string $song         نام فارسی آلبوم از فرم آلبوم
-     * @param string $host         نشانی هاست دانلود
-     * @param string $archive_path مسیر آرشیو آلبوم
-     * @param string $album_name   نام پایهٔ فایل آلبوم (مثلاً "Artist - Album")
-     * @return array {
-     *     @type int   $album       تعداد ترک‌های واردشده (برای کلید `album`)
-     *     @type array $meta        متاهای مستقیم قالب (artist, song, musics_type, plym, album_{i}_*)
-     *     @type array $tracks_data آرایهٔ قدیمی ترک‌ها برای `album_dl`
-     * }
+     * ساخت متاهای آلبوم از ترک‌های واردشده.
+     * هر ترک: array( 'title' => نام ترک, 'file' => نام فایل پایهٔ HostDL ).
+     * عنوان خالی کنار گذاشته می‌شود و متاها پیوسته و یک‌مبنا خواهند بود.
      */
     public static function build( array $tracks, $artist, $song, $host, $archive_path, $album_name ) {
         $dir320 = "{$album_name} [320]";
@@ -72,7 +39,7 @@ class TaranehYar_Album_Meta {
         );
 
         $tracks_data = array();
-        $index       = 0;
+        $count       = 0;
 
         foreach ( $tracks as $track ) {
             if ( ! is_array( $track ) ) {
@@ -83,6 +50,7 @@ class TaranehYar_Album_Meta {
                 continue;
             }
             $file = isset( $track['file'] ) ? (string) $track['file'] : '';
+            $index = $count + 1;
 
             $link320 = self::file_url( $host, $archive_path, "{$dir320}/{$file}.mp3" );
             $link128 = self::file_url( $host, $archive_path, "{$dir128}/{$file} [128].mp3" );
@@ -98,14 +66,14 @@ class TaranehYar_Album_Meta {
                 'al_url128' => $link128,
             );
 
-            $index++;
-            if ( $index >= self::MAX_TRACKS ) {
+            $count++;
+            if ( $count >= self::MAX_TRACKS ) {
                 break;
             }
         }
 
         return array(
-            'album'       => $index,
+            'album'       => $count,
             'meta'        => $meta,
             'tracks_data' => $tracks_data,
         );

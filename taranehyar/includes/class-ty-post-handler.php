@@ -236,6 +236,112 @@ class TaranehYar_Post_Handler {
         return ! empty( $ids ) ? $ids : array_map( 'intval', explode( ',', $default_csv ) );
     }
 
+    /** Return the most-specific configured category (last ID) and its canonical URL. */
+    private function primary_category_details( array $category_ids ) {
+        foreach ( array_reverse( $category_ids ) as $category_id ) {
+            $category_id = (int) $category_id;
+            if ( $category_id <= 0 ) continue;
+            $term = get_term( $category_id, 'category' );
+            if ( is_wp_error( $term ) || ! $term || empty( $term->term_id ) ) continue;
+            $url = get_category_link( $category_id );
+            if ( is_wp_error( $url ) || ! is_string( $url ) || $url === '' ) continue;
+            return array( 'id' => $category_id, 'name' => (string) $term->name, 'url' => $url );
+        }
+        return array( 'id' => 0, 'name' => '', 'url' => '' );
+    }
+
+    /** Render per-type templates from settings with plain text placeholders. */
+    private function seo_profile( $type, array $variables ) {
+        $overrides = array();
+        foreach ( TaranehYar_SEO::TEMPLATE_FIELDS as $field => $label ) {
+            $key = TaranehYar_SEO::option_key( $type, $field );
+            $overrides[ $field ] = $this->cfg( $key, TaranehYar_SEO::default_template( $type, $field ) );
+        }
+        return TaranehYar_SEO::profile( $type, $variables, $overrides );
+    }
+
+    /** Save canonical values and, when available, per-post metadata for SEO plugins. */
+    private function save_seo_metadata( $post_id, $type, array $seo ) {
+        update_post_meta( $post_id, 'ty_content_type', $type );
+        update_post_meta( $post_id, 'ty_seo_title', $seo['title'] );
+        update_post_meta( $post_id, 'ty_seo_description', $seo['description'] );
+        update_post_meta( $post_id, 'ty_focus_phrase', $seo['focus'] );
+
+        if ( defined( 'WPSEO_VERSION' ) ) {
+            update_post_meta( $post_id, '_yoast_wpseo_title', $seo['title'] );
+            update_post_meta( $post_id, '_yoast_wpseo_metadesc', $seo['description'] );
+            update_post_meta( $post_id, '_yoast_wpseo_focuskw', $seo['focus'] );
+            update_post_meta( $post_id, '_yoast_wpseo_opengraph-title', $seo['title'] );
+            update_post_meta( $post_id, '_yoast_wpseo_opengraph-description', $seo['description'] );
+            update_post_meta( $post_id, '_yoast_wpseo_twitter-title', $seo['title'] );
+            update_post_meta( $post_id, '_yoast_wpseo_twitter-description', $seo['description'] );
+        } elseif ( defined( 'RANK_MATH_VERSION' ) ) {
+            update_post_meta( $post_id, '_rank_math_title', $seo['title'] );
+            update_post_meta( $post_id, '_rank_math_description', $seo['description'] );
+            update_post_meta( $post_id, '_rank_math_focus_keyword', $seo['focus'] );
+            update_post_meta( $post_id, '_rank_math_facebook_title', $seo['title'] );
+            update_post_meta( $post_id, '_rank_math_facebook_description', $seo['description'] );
+            update_post_meta( $post_id, '_rank_math_twitter_title', $seo['title'] );
+            update_post_meta( $post_id, '_rank_math_twitter_description', $seo['description'] );
+        } elseif ( defined( 'SEOPRESS_VERSION' ) ) {
+            update_post_meta( $post_id, '_seopress_titles_title', $seo['title'] );
+            update_post_meta( $post_id, '_seopress_titles_desc', $seo['description'] );
+            update_post_meta( $post_id, '_seopress_analysis_target_kw', $seo['focus'] );
+            update_post_meta( $post_id, '_seopress_social_fb_title', $seo['title'] );
+            update_post_meta( $post_id, '_seopress_social_fb_desc', $seo['description'] );
+            update_post_meta( $post_id, '_seopress_social_twitter_title', $seo['title'] );
+            update_post_meta( $post_id, '_seopress_social_twitter_desc', $seo['description'] );
+        }
+    }
+
+    /** Build human-readable, escaped post content from the submitted facts. */
+    private function release_content( $type, array $seo, array $details, $info = '', $lyrics = '', array $credits = array(), array $category = array() ) {
+        $content = '<article class="ty-release-content">';
+        if ( $seo['intro'] !== '' ) {
+            $content .= '<div class="ty-release-intro">' . wpautop( esc_html( $seo['intro'] ) ) . '</div><!--more-->';
+        }
+        if ( trim( (string) $info ) !== '' ) {
+            $content .= '<section><h2>درباره اثر</h2><p>' . esc_html( $info ) . '</p></section>';
+        }
+        if ( TaranehYar_Settings::get( 'seo_category_links_enabled', '1' ) === '1' && ! empty( $category['url'] ) ) {
+            $labels = array(
+                'music' => 'مشاهدهٔ آهنگ‌های بیشتر',
+                'remix' => 'مشاهدهٔ ریمیکس‌های بیشتر',
+                'nohe'  => 'مشاهدهٔ نوحه و مداحی‌های بیشتر',
+                'video' => 'مشاهدهٔ موزیک‌ویدیوهای بیشتر',
+                'album' => 'مشاهدهٔ آلبوم‌های بیشتر',
+            );
+            $link_label = isset( $labels[ $type ] ) ? $labels[ $type ] : 'مشاهدهٔ مطالب مرتبط';
+            if ( ! empty( $category['name'] ) ) {
+                $link_label .= ' در دستهٔ ' . $category['name'];
+            }
+            $content .= '<p class="ty-category-link"><a href="' . esc_url( $category['url'] ) . '">' . esc_html( $link_label ) . '</a></p>';
+        }
+
+        if ( TaranehYar_Settings::get( 'seo_visible_details_enabled', '1' ) === '1' ) {
+            $rows = '';
+            foreach ( $details as $label => $value ) {
+                if ( is_scalar( $value ) && trim( (string) $value ) !== '' ) {
+                    $rows .= '<div><dt>' . esc_html( $label ) . '</dt><dd>' . esc_html( (string) $value ) . '</dd></div>';
+                }
+            }
+            foreach ( $credits as $label => $value ) {
+                if ( is_scalar( $value ) && trim( (string) $value ) !== '' ) {
+                    $rows .= '<div><dt>' . esc_html( $label ) . '</dt><dd>' . esc_html( (string) $value ) . '</dd></div>';
+                }
+            }
+            if ( $rows !== '' ) {
+                $content .= '<section class="ty-release-facts"><h2>مشخصات اثر</h2><dl>' . $rows . '</dl></section>';
+            }
+        }
+
+        if ( trim( (string) $lyrics ) !== '' && TaranehYar_Settings::get( 'seo_include_lyrics', '1' ) === '1' ) {
+            $heading = $type === 'nohe' ? 'متن نوحه' : 'متن ترانه';
+            $content .= '<section class="ty-lyrics-section"><h2>' . esc_html( $heading ) . '</h2><div class="ty-lyrics">' . wpautop( esc_html( $lyrics ) ) . '</div></section>';
+        }
+        return $content . '</article>';
+    }
+
     /**
      * مسیر و آدرس آپلودهای وردپرس (سازگار با WP_CONTENT_DIR سفارشی).
      */
@@ -265,7 +371,7 @@ class TaranehYar_Post_Handler {
        تک آهنگ / ریمیکس / نوحه  (منطق مشترک)
     ═══════════════════════════════════════════════ */
 
-    private function handle_music_type( $nonce_action, $redirect_page, $curl_key, $cat_key, $cat_default, $musics_type, $type_label ) {
+    private function handle_music_type( $nonce_action, $redirect_page, $curl_key, $cat_key, $cat_default, $musics_type, $type_label, $seo_type ) {
         $this->verify( $nonce_action );
         set_time_limit( 600 );
 
@@ -296,10 +402,35 @@ class TaranehYar_Post_Handler {
             }
         }
 
-        $urlsite   = $this->cfg( 'urlsite' );
         $urldlhost = $this->cfg( 'urldlhost' );
 
-        $title = "دانلود آهنگ {$name} به نام {$track}";
+        $cat_ids = $this->get_category_ids( $cat_key, $cat_default );
+        $category = $this->primary_category_details( $cat_ids );
+        $quality_values = array();
+        if ( ! empty( $link320 ) || ! empty( $_FILES['filelink320']['tmp_name'] ) ) $quality_values[] = '۳۲۰';
+        if ( ! empty( $link128 ) || ! empty( $_FILES['filelink128']['tmp_name'] ) ) $quality_values[] = '۱۲۸';
+        $quality_sentence = ! empty( $quality_values )
+            ? 'کیفیت‌های واردشده: ' . implode( ' و ', $quality_values ) . '.'
+            : '';
+
+        $seo_site = $this->cfg( 'namesite' );
+        if ( $seo_site === '' && function_exists( 'get_bloginfo' ) ) $seo_site = get_bloginfo( 'name' );
+        $seo = $this->seo_profile( $seo_type, array(
+            'artist'           => $name,
+            'track'            => $track,
+            'artist_en'        => $enname,
+            'track_en'         => $entrack,
+            'site'             => $seo_site,
+            'qualities'        => implode( ' و ', $quality_values ),
+            'quality_sentence' => $quality_sentence,
+            'info'             => $info,
+            'category'         => $category['name'],
+        ) );
+        foreach ( array( 'post_title', 'title', 'description', 'focus' ) as $seo_field ) {
+            $seo[ $seo_field ] = sanitize_text_field( $seo[ $seo_field ] );
+        }
+        $seo['intro'] = sanitize_textarea_field( $seo['intro'] );
+        $title = $seo['post_title'] !== '' ? $seo['post_title'] : "{$type_label} {$name} — {$track}";
         if ( $this->check_duplicate_title( $title ) ) {
             $this->redirect( $redirect_page, 'خطا: پستی با این عنوان قبلاً وجود دارد!', true );
         }
@@ -314,41 +445,34 @@ class TaranehYar_Post_Handler {
         $img_url     = trailingslashit( $this->upload_base()['url'] ) . "{$year}/{$months}/{$trackname}.jpg";
         $img_path    = $uploads_dir . "/{$trackname}.jpg";
 
-        $singer_tag    = sanitize_title_with_dashes( $name );
-        $singer_en     = sanitize_title_with_dashes( $enname );
-        $singer_fa_url = "https://{$urlsite}/tag/{$singer_tag}/";
-        $singer_en_url = "https://{$urlsite}/tag/{$singer_en}/";
-
-        $seo_title = "دانلود آهنگ {$name} به نام {$track} - " . $this->cfg( 'namesite' );
-        $metadesc  = "دانلود آهنگ جدید {$name} به نام {$track} با دو کیفیت 128 و 320 - Download New Music {$enname} - {$entrack} - متن ترانه {$name} {$track}.";
-
-        $content = sprintf(
-            '
-<p style="text-align: center;">هم اکنون شما می توانید <strong>%1$s</strong> از <strong>%2$s</strong> را بصورت آنلاین گوش کرده و با بالاترین کیفیت دانلود نمایید.</p>
-<p style="text-align: center;"><a href="https://%3$s/tag/%4$s">دانلود آهنگ جدید</a> <a href="%5$s">%2$s</a> به نام %1$s</p>
-<p style="text-align: center;">%6$s</p>
-<div style="text-align: center;"><a href="https://%3$s/tag/download-new-music">Download New Music</a> <a href="%7$s">%8$s</a> – %9$s</div>
-<!--more-->
-',
-            esc_html( $track ),
-            esc_html( $name ),
-            esc_html( $urlsite ),
-            'دانلود-آهنگ-جدید',
-            esc_url( $singer_fa_url ),
-            esc_html( $info ),
-            esc_url( $singer_en_url ),
-            esc_html( $enname ),
-            esc_html( $entrack )
+        $content = $this->release_content(
+            $seo_type,
+            $seo,
+            array(
+                'خواننده' => $name,
+                'نام اثر' => $track,
+                'نوع محتوا' => $type_label,
+                'کیفیت‌های ورودی' => implode( ' و ', $quality_values ),
+            ),
+            $info,
+            $lyric,
+            array(
+                'ترانه‌سرا' => $songwriter,
+                'آهنگساز' => $composer,
+                'تنظیم‌کننده' => $regulator,
+                'میکس و مسترینگ' => $mixmaster,
+            ),
+            $category
         );
 
         list( $post_status, $req_msg ) = $this->post_status_and_msg( $is_draft );
-        $cat_ids = $this->get_category_ids( $cat_key, $cat_default );
 
         $post_id = wp_insert_post( array(
             'post_author'   => get_current_user_id(),
             'post_status'   => $post_status,
             'post_type'     => 'post',
             'post_title'    => sanitize_text_field( $title ),
+            'post_excerpt'  => $seo['description'],
             'post_category' => $cat_ids,
             'post_name'     => sanitize_title_with_dashes( $trackname ),
             'post_content'  => $content,
@@ -358,19 +482,14 @@ class TaranehYar_Post_Handler {
             $this->redirect( $redirect_page, 'خطا در ایجاد پست: ' . $post_id->get_error_message(), true );
         }
 
-        $tags = array( 'download new music', 'دانلود آهنگ جدید', 'دانلود آهنگ ایرانی', $name, $enname );
-        wp_set_post_tags( $post_id, $tags );
+        wp_set_post_tags( $post_id, TaranehYar_SEO::tags_for( $seo_type, $name, $enname, $track ) );
         wp_set_object_terms( $post_id, $name, $this->singer_taxonomy() );
         if ( $songwriter ) wp_set_object_terms( $post_id, $songwriter, 'songwriter' );
         if ( $composer )   wp_set_object_terms( $post_id, $composer,   'composer' );
         if ( $regulator )  wp_set_object_terms( $post_id, $regulator,  'regulator' );
         if ( $mixmaster )  wp_set_object_terms( $post_id, $mixmaster,  'mixmaster' );
 
-        update_post_meta( $post_id, '_yoast_wpseo_title',         strip_tags( $seo_title ) );
-        update_post_meta( $post_id, '_yoast_wpseo_metadesc',      strip_tags( $metadesc ) );
-        update_post_meta( $post_id, '_yoast_wpseo_focuskw',       strip_tags( "آهنگ {$name} {$track}" ) );
-        update_post_meta( $post_id, '_yoast_wpseo_linkdex',       '99' );
-        update_post_meta( $post_id, '_yoast_wpseo_content_score', '99' );
+        $this->save_seo_metadata( $post_id, $seo_type, $seo );
         $this->update_mapped_meta( $post_id, 'art_name',       $name );
         $this->update_mapped_meta( $post_id, 'track_name',     $track );
         $this->update_mapped_meta( $post_id, 'artist_en',      $enname );
@@ -434,15 +553,15 @@ class TaranehYar_Post_Handler {
     }
 
     public function handle_music() {
-        $this->handle_music_type( 'ty_submit_music', 'ty-dashboard', 'urlfunction_music', 'cat_music', '10,12', 'mp3', 'تک آهنگ' );
+        $this->handle_music_type( 'ty_submit_music', 'ty-dashboard', 'urlfunction_music', 'cat_music', '10,12', 'mp3', 'تک آهنگ', 'music' );
     }
 
     public function handle_remix() {
-        $this->handle_music_type( 'ty_submit_remix', 'ty-remix', 'urlfunction_remix', 'cat_remix', '10,13', 'mp3', 'ریمیکس' );
+        $this->handle_music_type( 'ty_submit_remix', 'ty-remix', 'urlfunction_remix', 'cat_remix', '10,13', 'mp3', 'ریمیکس', 'remix' );
     }
 
     public function handle_nohe() {
-        $this->handle_music_type( 'ty_submit_nohe', 'ty-nohe', 'urlfunction_nohe', 'cat_nohe', '10,14', 'mp3', 'نوحه' );
+        $this->handle_music_type( 'ty_submit_nohe', 'ty-nohe', 'urlfunction_nohe', 'cat_nohe', '10,14', 'mp3', 'نوحه', 'nohe' );
     }
 
     /* ═══════════════════════════════════════════════
@@ -475,14 +594,7 @@ class TaranehYar_Post_Handler {
             }
         }
 
-        $urlsite   = $this->cfg( 'urlsite' );
         $urldlhost = $this->cfg( 'urldlhost' );
-
-        $title = "دانلود موزیک ویدیو {$name} به نام {$track}";
-        if ( $this->check_duplicate_title( $title ) ) {
-            $this->redirect( 'ty-video', 'خطا: پستی با این عنوان قبلاً وجود دارد!', true );
-        }
-
         $year   = date( 'Y' ); $months = date( 'm' );
         $uploads_dir = $this->ensure_upload_dir( $year, $months );
 
@@ -490,27 +602,59 @@ class TaranehYar_Post_Handler {
         $archive_path = $this->archive_path( 'music-video', $enname );
         $img_url     = trailingslashit( $this->upload_base()['url'] ) . "{$year}/{$months}/{$trackname}.jpg";
         $img_path  = $uploads_dir . "/{$trackname}.jpg";
-
-        $seo_title = "دانلود موزیک ویدیو {$name} به نام {$track} - " . $this->cfg( 'namesite' );
-        $metadesc  = "دانلود موزیک ویدیو جدید {$name} به نام {$track} - Download New Music Video {$enname} - {$entrack}";
-
-        $content = sprintf(
-            '
-<p style="text-align: center;">موزیک ویدیو <strong>%1$s</strong> از <strong>%2$s</strong></p>
-<p style="text-align: center;">%3$s</p>
-<!--more-->
-',
-            esc_html( $track ), esc_html( $name ), esc_html( $info )
-        );
-
-        list( $post_status, $req_msg ) = $this->post_status_and_msg( $is_draft );
         $cat_ids = $this->get_category_ids( 'cat_video', '10,15' );
+        $category = $this->primary_category_details( $cat_ids );
+
+        $quality_values = array();
+        if ( ! empty( $link1080 ) ) $quality_values[] = '۱۰۸۰p';
+        if ( ! empty( $link720 ) ) $quality_values[] = '۷۲۰p';
+        if ( ! empty( $link480 ) ) $quality_values[] = '۴۸۰p';
+        if ( ! empty( $link320 ) ) $quality_values[] = 'صوتی';
+        $quality_sentence = ! empty( $quality_values ) ? 'کیفیت‌های واردشده: ' . implode( ' و ', $quality_values ) . '.' : '';
+        $seo_site = $this->cfg( 'namesite' );
+        if ( $seo_site === '' && function_exists( 'get_bloginfo' ) ) $seo_site = get_bloginfo( 'name' );
+        $seo = $this->seo_profile( 'video', array(
+            'artist'           => $name,
+            'track'            => $track,
+            'artist_en'        => $enname,
+            'track_en'         => $entrack,
+            'site'             => $seo_site,
+            'qualities'        => implode( ' و ', $quality_values ),
+            'quality_sentence' => $quality_sentence,
+            'info'             => $info,
+            'category'         => $category['name'],
+        ) );
+        foreach ( array( 'post_title', 'title', 'description', 'focus' ) as $seo_field ) {
+            $seo[ $seo_field ] = sanitize_text_field( $seo[ $seo_field ] );
+        }
+        $seo['intro'] = sanitize_textarea_field( $seo['intro'] );
+        $title = $seo['post_title'] !== '' ? $seo['post_title'] : "دانلود موزیک ویدیو {$name} به نام {$track}";
+        if ( $this->check_duplicate_title( $title ) ) {
+            $this->redirect( 'ty-video', 'خطا: پستی با این عنوان قبلاً وجود دارد!', true );
+        }
+
+        $content = $this->release_content(
+            'video',
+            $seo,
+            array(
+                'خواننده' => $name,
+                'نام ویدیو' => $track,
+                'نوع محتوا' => 'موزیک‌ویدیو',
+                'کیفیت‌های ورودی' => implode( ' و ', $quality_values ),
+            ),
+            $info,
+            '',
+            array(),
+            $category
+        );
+        list( $post_status, $req_msg ) = $this->post_status_and_msg( $is_draft );
 
         $post_id = wp_insert_post( array(
             'post_author'   => get_current_user_id(),
             'post_status'   => $post_status,
             'post_type'     => 'post',
             'post_title'    => sanitize_text_field( $title ),
+            'post_excerpt'  => $seo['description'],
             'post_category' => $cat_ids,
             'post_name'     => sanitize_title_with_dashes( $trackname ),
             'post_content'  => $content,
@@ -520,8 +664,7 @@ class TaranehYar_Post_Handler {
             $this->redirect( 'ty-video', 'خطا در ایجاد پست: ' . $post_id->get_error_message(), true );
         }
 
-        update_post_meta( $post_id, '_yoast_wpseo_title',    strip_tags( $seo_title ) );
-        update_post_meta( $post_id, '_yoast_wpseo_metadesc', strip_tags( $metadesc ) );
+        $this->save_seo_metadata( $post_id, 'video', $seo );
         $this->update_mapped_meta( $post_id, 'art_name',       $name );
         $this->update_mapped_meta( $post_id, 'track_name',     $track );
         $this->update_mapped_meta( $post_id, 'artist_en',      $enname );
@@ -531,6 +674,7 @@ class TaranehYar_Post_Handler {
         $this->update_mapped_meta( $post_id, 'musics_type', 'mp4' );
         update_post_meta( $post_id, 'online_ply', 'off' );
         wp_set_object_terms( $post_id, $name, $this->singer_taxonomy() );
+        wp_set_post_tags( $post_id, TaranehYar_SEO::tags_for( 'video', $name, $enname, $track ) );
         if ( ! empty( $link1080 ) ) {
             $this->update_mapped_meta( $post_id, 'video1080p', $this->download_file_url( $urldlhost, $archive_path, $trackname . ' [1080].mp4' ) );
         }
@@ -610,14 +754,7 @@ class TaranehYar_Post_Handler {
             }
         }
 
-        $urlsite   = $this->cfg( 'urlsite' );
         $urldlhost = $this->cfg( 'urldlhost' );
-
-        $title = "دانلود آلبوم جدید {$artist} به نام {$song}";
-        if ( $this->check_duplicate_title( $title ) ) {
-            $this->redirect( 'ty-album', 'خطا: پستی با این عنوان قبلاً وجود دارد!', true );
-        }
-
         $year   = date( 'Y' ); $months = date( 'm' );
         $uploads_dir = $this->ensure_upload_dir( $year, $months );
 
@@ -627,33 +764,94 @@ class TaranehYar_Post_Handler {
         $archive_path  = $this->archive_path( 'album', $artist_en );
         $img_path      = $uploads_dir . "/{$album_name}.jpg";
         $img_url       = trailingslashit( $this->upload_base()['url'] ) . "{$year}/{$months}/{$album_name}.jpg";
+        $album_url320  = $this->download_file_url( $urldlhost, $archive_path, $album_name320 . '.zip' );
+        $album_url128  = $this->download_file_url( $urldlhost, $archive_path, $album_name128 . '.zip' );
 
-        $singer_tag_fa = "https://{$urlsite}/tag/" . sanitize_title_with_dashes( $artist ) . '/';
-        $singer_tag_en = "https://{$urlsite}/tag/" . sanitize_title_with_dashes( $artist_en ) . '/';
+        $track_entries = array();
+        $track_warning = false;
+        for ( $i = 1; $i <= TaranehYar_Album_Meta::MAX_TRACKS; $i++ ) {
+            $tname = sanitize_text_field( wp_unslash( $_POST["track_name_{$i}"] ?? '' ) );
+            $tl320 = esc_url_raw( $_POST["track_link320_{$i}"] ?? '' );
+            $tl128 = esc_url_raw( $_POST["track_link128_{$i}"] ?? '' );
+            if ( $tname === '' ) continue;
 
-        $seo_title = "دانلود آلبوم جدید {$artist} به نام {$song} - " . $this->cfg( 'namesite' );
-        $metadesc  = "دانلود آلبوم جدید {$artist} به نام {$song} Download New Album {$artist_en} Called {$song_en} همراه با بالاترین کیفیت بصورت تکی و یکجا";
-
-        $content = sprintf(
-            '
-<p style="text-align: center;"><strong>آلبوم %1$s</strong> از <strong>%2$s</strong></p>
-<p style="text-align: center;"><a href="%3$s">%2$s</a> بنام %1$s</p>
-<div style="text-align: center;"><a href="%4$s">%5$s</a> – %6$s</div>
-<p style="text-align: center;">%7$s</p>
-<!--more-->
-',
-            esc_html( $song ), esc_html( $artist ), esc_url( $singer_tag_fa ),
-            esc_url( $singer_tag_en ), esc_html( $artist_en ), esc_html( $song_en ), esc_html( $info )
+            foreach ( array( $tl320, $tl128 ) as $u ) {
+                if ( is_wp_error( $this->validate_remote_url( $u ) ) ) $track_warning = true;
+            }
+            $track_entries[] = array(
+                'title' => $tname,
+                'file'  => $this->safe_filename( "{$artist_en} - {$tname}" ),
+            );
+        }
+        $built = TaranehYar_Album_Meta::build(
+            $track_entries,
+            $artist,
+            $song,
+            $urldlhost,
+            $archive_path,
+            $album_name
         );
 
-        list( $post_status, $req_msg ) = $this->post_status_and_msg( $is_draft );
         $cat_ids = $this->get_category_ids( 'cat_album', '2' );
+        $category = $this->primary_category_details( $cat_ids );
+        $seo_site = $this->cfg( 'namesite' );
+        if ( $seo_site === '' && function_exists( 'get_bloginfo' ) ) $seo_site = get_bloginfo( 'name' );
+        $seo = $this->seo_profile( 'album', array(
+            'artist'           => $artist,
+            'album'            => $song,
+            'track'            => $song,
+            'artist_en'        => $artist_en,
+            'album_en'         => $song_en,
+            'track_en'         => $song_en,
+            'site'             => $seo_site,
+            'track_count'      => (string) $built['album'],
+            'qualities'        => '۱۲۸ و ۳۲۰',
+            'quality_sentence' => 'لینک دریافت یکجای آلبوم در کیفیت‌های موجود در این صفحه قرار دارد.',
+            'info'             => $info,
+            'category'         => $category['name'],
+        ) );
+        foreach ( array( 'post_title', 'title', 'description', 'focus' ) as $seo_field ) {
+            $seo[ $seo_field ] = sanitize_text_field( $seo[ $seo_field ] );
+        }
+        $seo['intro'] = sanitize_textarea_field( $seo['intro'] );
+        $title = $seo['post_title'] !== '' ? $seo['post_title'] : "دانلود آلبوم {$artist} به نام {$song}";
+        if ( $this->check_duplicate_title( $title ) ) {
+            $this->redirect( 'ty-album', 'خطا: پستی با این عنوان قبلاً وجود دارد!', true );
+        }
+
+        $content = $this->release_content(
+            'album',
+            $seo,
+            array(
+                'خواننده' => $artist,
+                'نام آلبوم' => $song,
+                'تعداد قطعه‌ها' => (string) $built['album'],
+            ),
+            $info,
+            '',
+            array(),
+            $category
+        );
+        if ( TaranehYar_Settings::get( 'seo_album_tracklist_enabled', '1' ) === '1' && ! empty( $built['tracks_data'] ) ) {
+            $content .= '<section class="ty-album-tracklist"><h2>فهرست قطعه‌های آلبوم</h2><ol>';
+            foreach ( $built['tracks_data'] as $position => $track_data ) {
+                $content .= '<li><span>' . esc_html( $track_data['title'] ) . '</span>';
+                $content .= ' <a href="' . esc_url( $track_data['al_url128'] ) . '">دانلود ۱۲۸</a>';
+                $content .= ' <a href="' . esc_url( $track_data['al_url320'] ) . '">دانلود ۳۲۰</a></li>';
+            }
+            $content .= '</ol><p class="ty-album-bulk-download">دانلود یکجای آلبوم: '
+                . '<a href="' . esc_url( $album_url128 ) . '">فایل ZIP کیفیت ۱۲۸</a> | '
+                . '<a href="' . esc_url( $album_url320 ) . '">فایل ZIP کیفیت ۳۲۰</a></p></section>';
+        }
+
+        list( $post_status, $req_msg ) = $this->post_status_and_msg( $is_draft );
 
         $post_id = wp_insert_post( array(
             'post_author'   => get_current_user_id(),
             'post_status'   => $post_status,
             'post_type'     => 'post',
             'post_title'    => sanitize_text_field( $title ),
+            'post_excerpt'  => $seo['description'],
             'post_category' => $cat_ids,
             'post_name'     => sanitize_title_with_dashes( $album_name ),
             'post_content'  => $content,
@@ -663,8 +861,7 @@ class TaranehYar_Post_Handler {
             $this->redirect( 'ty-album', 'خطا در ایجاد پست: ' . $post_id->get_error_message(), true );
         }
 
-        update_post_meta( $post_id, '_yoast_wpseo_title',    strip_tags( $seo_title ) );
-        update_post_meta( $post_id, '_yoast_wpseo_metadesc', strip_tags( $metadesc ) );
+        $this->save_seo_metadata( $post_id, 'album', $seo );
         $this->update_mapped_meta( $post_id, 'art_name',       $artist );
         $this->update_mapped_meta( $post_id, 'track_name',     $song );
         $this->update_mapped_meta( $post_id, 'artist_en',      $artist_en );
@@ -675,50 +872,18 @@ class TaranehYar_Post_Handler {
         update_post_meta( $post_id, 'online_ply',  'off' );
         update_post_meta( $post_id, 'slider_song', 'off' );
         update_post_meta( $post_id, 'pplayer_in',  'off' );
-        $this->update_mapped_meta( $post_id, 'album320', $this->download_file_url( $urldlhost, $archive_path, $album_name320 . '.zip' ) );
-        $this->update_mapped_meta( $post_id, 'album128', $this->download_file_url( $urldlhost, $archive_path, $album_name128 . '.zip' ) );
+        $this->update_mapped_meta( $post_id, 'album320', $album_url320 );
+        $this->update_mapped_meta( $post_id, 'album128', $album_url128 );
         update_post_meta( $post_id, 'talbume320', $this->download_file_url( $urldlhost, $archive_path, $album_name320 . '/' ) );
         update_post_meta( $post_id, 'talbume128', $this->download_file_url( $urldlhost, $archive_path, $album_name128 . '/' ) );
 
         wp_set_object_terms( $post_id, $artist, $this->singer_taxonomy() );
-        wp_set_post_tags( $post_id, array( 'download new album', 'دانلود آلبوم', 'دانلود آلبوم جدید', $artist, $artist_en ) );
-
-        $track_entries = array();
-        $track_warning = false;
-        for ( $i = 1; $i <= 15; $i++ ) {
-            $tname = sanitize_text_field( wp_unslash( $_POST["track_name_{$i}"] ?? '' ) );
-            $tl320 = esc_url_raw( $_POST["track_link320_{$i}"] ?? '' );
-            $tl128 = esc_url_raw( $_POST["track_link128_{$i}"] ?? '' );
-            if ( empty( $tname ) ) continue;
-
-            foreach ( array( $tl320, $tl128 ) as $u ) {
-                if ( is_wp_error( $this->validate_remote_url( $u ) ) ) $track_warning = true;
-            }
-
-            $track_entries[] = array(
-                'title' => $tname,
-                'file'  => $this->safe_filename( "{$artist_en} - {$tname}" ),
-            );
-        }
+        wp_set_post_tags( $post_id, TaranehYar_SEO::tags_for( 'album', $artist, $artist_en, $song ) );
 
         /*
-         * متاهای ساختار قالب (ترانه‌یار 1.0.3):
-         *  - `album`                تعداد ترک‌های واردشده (عدد)
-         *  - `artist` / `song`      نام فارسی خواننده و آلبوم از فرم
-         *  - `musics_type` = album و `plym` = 0
-         *  - برای هر ترک با اندیس صفرمبنا: `album_{i}_song_names`،
-         *    `album_{i}_albumlink128` و `album_{i}_albumlink320` (لینک مقصد فایل‌های HostDL)
-         * آرایهٔ قدیمی ترک‌ها نیز برای سازگاری در `album_dl` نگه‌داری می‌شود.
+         * متاهای ساختار قالب: یک‌مبنا برای کلیدهای album_{n}_...؛
+         * آرایهٔ سازگاری album_dl حفظ می‌شود.
          */
-        $built = TaranehYar_Album_Meta::build(
-            $track_entries,
-            $artist,
-            $song,
-            $urldlhost,
-            $archive_path,
-            $album_name
-        );
-
         $this->update_mapped_meta( $post_id, 'album', $built['album'] );
         foreach ( $built['meta'] as $meta_key => $meta_value ) {
             // musics_type has an existing configurable mapping; never bypass it.
