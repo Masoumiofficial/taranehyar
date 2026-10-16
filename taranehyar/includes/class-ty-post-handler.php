@@ -250,6 +250,22 @@ class TaranehYar_Post_Handler {
         return array( 'id' => 0, 'name' => '', 'url' => '' );
     }
 
+    /** Resolve a selected global copy-template ID; raw per-post copy text is never accepted. */
+    private function selected_intro_overrides( $type ) {
+        $overrides = array();
+        foreach ( array( 'fa' => 'intro', 'en' => 'intro_en' ) as $language => $field ) {
+            $post_key = $language === 'en' ? 'post_text_en' : 'post_text_fa';
+            $submitted = sanitize_text_field( wp_unslash( $_POST[ $post_key ] ?? '' ) );
+            if ( ! in_array( $submitted, array( '0', '1', '2', '3' ), true ) ) {
+                $submitted = TaranehYar_SEO::default_intro_variant( $type, $language );
+            }
+            $overrides[ $field ] = $submitted === '0'
+                ? ''
+                : TaranehYar_SEO::intro_template( $type, $language, (int) $submitted );
+        }
+        return $overrides;
+    }
+
     /** Render per-type templates from settings with plain text placeholders. */
     private function seo_profile( $type, array $variables, array $post_overrides = array() ) {
         $overrides = array();
@@ -300,7 +316,7 @@ class TaranehYar_Post_Handler {
     }
 
     /** Build human-readable, escaped post content from the submitted facts. */
-    private function release_content( $type, array $seo, array $details, $info = '', $lyrics = '', array $credits = array(), array $category = array() ) {
+    private function release_content( $type, array $seo, array $details, $info = '', array $credits = array(), array $category = array() ) {
         $content = '<article class="ty-release-content">';
         if ( $seo['intro'] !== '' ) {
             $content .= '<div class="ty-release-intro" lang="fa" dir="rtl">' . wpautop( esc_html( $seo['intro'] ) ) . '</div><!--more-->';
@@ -343,10 +359,6 @@ class TaranehYar_Post_Handler {
             }
         }
 
-        if ( trim( (string) $lyrics ) !== '' && TaranehYar_Settings::get( 'seo_include_lyrics', '1' ) === '1' ) {
-            $heading = $type === 'nohe' ? 'متن نوحه' : 'متن ترانه';
-            $content .= '<section class="ty-lyrics-section"><h2>' . esc_html( $heading ) . '</h2><div class="ty-lyrics">' . wpautop( esc_html( $lyrics ) ) . '</div></section>';
-        }
         return $content . '</article>';
     }
 
@@ -397,8 +409,7 @@ class TaranehYar_Post_Handler {
         $composer   = sanitize_text_field( wp_unslash( $_POST['melody'] ?? '' ) );
         $regulator  = sanitize_text_field( wp_unslash( $_POST['arrng'] ?? '' ) );
         $mixmaster  = sanitize_text_field( wp_unslash( $_POST['mix'] ?? '' ) );
-        $post_text_fa = sanitize_textarea_field( wp_unslash( $_POST['post_text_fa'] ?? '' ) );
-        $post_text_en = sanitize_textarea_field( wp_unslash( $_POST['post_text_en'] ?? '' ) );
+        $post_copy_overrides = $this->selected_intro_overrides( $seo_type );
         $is_draft   = sanitize_text_field( $_POST['is_draft'] ?? 'publish' );
 
         if ( empty( $name ) || empty( $track ) || empty( $enname ) || empty( $entrack ) ) {
@@ -440,10 +451,7 @@ class TaranehYar_Post_Handler {
             'quality_sentence_en' => $quality_sentence_en,
             'info'               => $info,
             'category'           => $category['name'],
-        ), array(
-            'intro'    => $post_text_fa,
-            'intro_en' => $post_text_en,
-        ) );
+        ), $post_copy_overrides );
         foreach ( array( 'post_title', 'title', 'description', 'focus' ) as $seo_field ) {
             $seo[ $seo_field ] = sanitize_text_field( $seo[ $seo_field ] );
         }
@@ -475,7 +483,6 @@ class TaranehYar_Post_Handler {
                 'کیفیت‌های ورودی' => implode( ' و ', $quality_values ),
             ),
             $info,
-            $lyric,
             array(
                 'ترانه‌سرا' => $songwriter,
                 'آهنگساز' => $composer,
@@ -602,8 +609,7 @@ class TaranehYar_Post_Handler {
         $link720  = esc_url_raw( $_POST['link720'] ?? '' );
         $link480  = esc_url_raw( $_POST['link480'] ?? '' );
         $link320  = esc_url_raw( $_POST['link320'] ?? '' );
-        $post_text_fa = sanitize_textarea_field( wp_unslash( $_POST['post_text_fa'] ?? '' ) );
-        $post_text_en = sanitize_textarea_field( wp_unslash( $_POST['post_text_en'] ?? '' ) );
+        $post_copy_overrides = $this->selected_intro_overrides( 'video' );
         $is_draft = sanitize_text_field( $_POST['is_draft'] ?? 'publish' );
 
         if ( empty( $name ) || empty( $track ) || empty( $enname ) || empty( $entrack ) ) {
@@ -653,10 +659,7 @@ class TaranehYar_Post_Handler {
             'quality_sentence_en' => $quality_sentence_en,
             'info'                => $info,
             'category'            => $category['name'],
-        ), array(
-            'intro'    => $post_text_fa,
-            'intro_en' => $post_text_en,
-        ) );
+        ), $post_copy_overrides );
         foreach ( array( 'post_title', 'title', 'description', 'focus' ) as $seo_field ) {
             $seo[ $seo_field ] = sanitize_text_field( $seo[ $seo_field ] );
         }
@@ -677,7 +680,6 @@ class TaranehYar_Post_Handler {
                 'کیفیت‌های ورودی' => implode( ' و ', $quality_values ),
             ),
             $info,
-            '',
             array(),
             $category
         );
@@ -775,8 +777,7 @@ class TaranehYar_Post_Handler {
         $cover     = esc_url_raw( $_POST['cover'] ?? '' );
         $info      = sanitize_text_field( wp_unslash( $_POST['info'] ?? '' ) );
         $cover_mp3 = esc_url_raw( $_POST['cover_mp3'] ?? '' );
-        $post_text_fa = sanitize_textarea_field( wp_unslash( $_POST['post_text_fa'] ?? '' ) );
-        $post_text_en = sanitize_textarea_field( wp_unslash( $_POST['post_text_en'] ?? '' ) );
+        $post_copy_overrides = $this->selected_intro_overrides( 'album' );
         $is_draft  = sanitize_text_field( $_POST['is_draft'] ?? 'publish' );
 
         if ( empty( $artist ) || empty( $song ) || empty( $artist_en ) || empty( $song_en ) ) {
@@ -847,10 +848,7 @@ class TaranehYar_Post_Handler {
             'quality_sentence_en' => '',
             'info'               => $info,
             'category'           => $category['name'],
-        ), array(
-            'intro'    => $post_text_fa,
-            'intro_en' => $post_text_en,
-        ) );
+        ), $post_copy_overrides );
         foreach ( array( 'post_title', 'title', 'description', 'focus' ) as $seo_field ) {
             $seo[ $seo_field ] = sanitize_text_field( $seo[ $seo_field ] );
         }
@@ -870,7 +868,6 @@ class TaranehYar_Post_Handler {
                 'تعداد قطعه‌ها' => (string) $built['album'],
             ),
             $info,
-            '',
             array(),
             $category
         );

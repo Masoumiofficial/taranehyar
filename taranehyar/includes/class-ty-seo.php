@@ -70,6 +70,60 @@ class TaranehYar_SEO {
         ),
     );
 
+    /** Alternative copy patterns, stored once in settings and selected from each post form. */
+    const ALT_INTRO_TEMPLATES = array(
+        'music' => array(
+            'fa' => array(
+                2 => 'در این نوشته، آهنگ «{track}» با صدای {artist} معرفی می‌شود. {quality_sentence}',
+                3 => 'نام اثر: «{track}» | خواننده: {artist}. {quality_sentence}',
+            ),
+            'en' => array(
+                2 => 'This post introduces “{track_en}” by {artist_en}. {quality_sentence_en}',
+                3 => 'Track: “{track_en}” | Artist: {artist_en}. {quality_sentence_en}',
+            ),
+        ),
+        'remix' => array(
+            'fa' => array(
+                2 => 'ریمیکس «{track}» با اجرای {artist} معرفی می‌شود. {quality_sentence}',
+                3 => 'نام ریمیکس: «{track}» | هنرمند: {artist}. {quality_sentence}',
+            ),
+            'en' => array(
+                2 => 'This post introduces the remix “{track_en}” by {artist_en}. {quality_sentence_en}',
+                3 => 'Remix: “{track_en}” | Artist: {artist_en}. {quality_sentence_en}',
+            ),
+        ),
+        'nohe' => array(
+            'fa' => array(
+                2 => 'نوحه/مداحی «{track}» با صدای {artist} معرفی می‌شود. {quality_sentence}',
+                3 => 'عنوان نوحه: «{track}» | مداح: {artist}. {quality_sentence}',
+            ),
+            'en' => array(
+                2 => 'This post introduces the devotional recitation “{track_en}” by {artist_en}. {quality_sentence_en}',
+                3 => 'Recitation: “{track_en}” | Performer: {artist_en}. {quality_sentence_en}',
+            ),
+        ),
+        'video' => array(
+            'fa' => array(
+                2 => 'موزیک‌ویدیوی «{track}» از {artist} معرفی می‌شود. {quality_sentence}',
+                3 => 'عنوان ویدیو: «{track}» | هنرمند: {artist}. {quality_sentence}',
+            ),
+            'en' => array(
+                2 => 'This post introduces the music video “{track_en}” by {artist_en}. {quality_sentence_en}',
+                3 => 'Music video: “{track_en}” | Artist: {artist_en}. {quality_sentence_en}',
+            ),
+        ),
+        'album' => array(
+            'fa' => array(
+                2 => 'آلبوم «{album}» اثر {artist} شامل {track_count} قطعهٔ ثبت‌شده است.',
+                3 => 'نام آلبوم: «{album}» | هنرمند: {artist} | تعداد قطعه‌ها: {track_count}.',
+            ),
+            'en' => array(
+                2 => 'Album “{album_en}” by {artist_en} contains {track_count_en} submitted tracks.',
+                3 => 'Album: “{album_en}” | Artist: {artist_en} | Track count: {track_count_en}.',
+            ),
+        ),
+    );
+
     public function init() {
         add_filter( 'pre_get_document_title', array( $this, 'filter_document_title' ), 30 );
         add_action( 'wp_head', array( $this, 'render_head' ), 30 );
@@ -86,6 +140,67 @@ class TaranehYar_SEO {
         return isset( self::DEFAULT_TEMPLATES[ $type ][ $field ] )
             ? self::DEFAULT_TEMPLATES[ $type ][ $field ]
             : '';
+    }
+
+    public static function intro_option_key( $type, $language, $variant = 1 ) {
+        $variant = (int) $variant;
+        if ( ! isset( self::DEFAULT_TEMPLATES[ $type ] ) || ! in_array( $language, array( 'fa', 'en' ), true ) || $variant < 1 || $variant > 3 ) {
+            return '';
+        }
+        $field = $language === 'en' ? 'intro_en' : 'intro';
+        if ( $variant === 1 ) {
+            return self::option_key( $type, $field );
+        }
+        return $language === 'en'
+            ? 'seo_intro_en_' . $variant . '_' . $type
+            : 'seo_intro_' . $variant . '_' . $type;
+    }
+
+    public static function default_intro_template( $type, $language, $variant = 1 ) {
+        if ( ! isset( self::DEFAULT_TEMPLATES[ $type ] ) ) {
+            $type = 'music';
+        }
+        if ( ! in_array( $language, array( 'fa', 'en' ), true ) ) {
+            return '';
+        }
+        $variant = (int) $variant;
+        if ( $variant === 1 ) {
+            return self::default_template( $type, $language === 'en' ? 'intro_en' : 'intro' );
+        }
+        return isset( self::ALT_INTRO_TEMPLATES[ $type ][ $language ][ $variant ] )
+            ? self::ALT_INTRO_TEMPLATES[ $type ][ $language ][ $variant ]
+            : '';
+    }
+
+    /** Read an intro template while preserving an intentionally saved empty string. */
+    public static function intro_template( $type, $language, $variant = 1 ) {
+        $key = self::intro_option_key( $type, $language, $variant );
+        if ( $key === '' ) {
+            return '';
+        }
+        $options = function_exists( 'get_option' ) ? get_option( 'ty_options', array() ) : array();
+        if ( is_array( $options ) && array_key_exists( $key, $options ) ) {
+            return is_scalar( $options[ $key ] ) ? (string) $options[ $key ] : '';
+        }
+        return self::default_intro_template( $type, $language, $variant );
+    }
+
+    public static function default_intro_variant( $type, $language ) {
+        if ( ! isset( self::DEFAULT_TEMPLATES[ $type ] ) || ! in_array( $language, array( 'fa', 'en' ), true ) ) {
+            return '1';
+        }
+        $key = 'seo_copy_default_' . $language . '_' . $type;
+        $value = class_exists( 'TaranehYar_Settings' ) ? (string) TaranehYar_Settings::get( $key, '1' ) : '1';
+        return in_array( $value, array( '0', '1', '2', '3' ), true ) ? $value : '1';
+    }
+
+    /** Return the configured template choices for a language/content type. */
+    public static function intro_templates( $type, $language ) {
+        $templates = array( 0 => '' );
+        foreach ( array( 1, 2, 3 ) as $variant ) {
+            $templates[ $variant ] = self::intro_template( $type, $language, $variant );
+        }
+        return $templates;
     }
 
     /** Replace plain-text {placeholders}; callers escape before writing HTML. */

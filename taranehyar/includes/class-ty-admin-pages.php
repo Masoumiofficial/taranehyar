@@ -110,19 +110,35 @@ class TaranehYar_Admin_Pages {
         return '<select name="is_draft"><option value="publish">✅ منتشر شود</option><option value="draft">📝 پیشنویس شود</option></select>';
     }
 
-    private function post_copy_fields( $seo_type ) {
-        $fa_key = TaranehYar_SEO::option_key( $seo_type, 'intro' );
-        $en_key = TaranehYar_SEO::option_key( $seo_type, 'intro_en' );
-        $fa = TaranehYar_Settings::get( $fa_key, TaranehYar_SEO::default_template( $seo_type, 'intro' ) );
-        $en = TaranehYar_Settings::get( $en_key, TaranehYar_SEO::default_template( $seo_type, 'intro_en' ) );
-        $fa_html = '<textarea class="ty-post-copy" name="post_text_fa" rows="3" placeholder="متن معرفی فارسی این نوشته">' . esc_textarea( $fa ) . '</textarea>';
-        $en_html = '<textarea class="ty-post-copy ty-post-copy-en" name="post_text_en" rows="3" dir="ltr" placeholder="English introduction for this post">' . esc_textarea( $en ) . '</textarea>';
+    private function copy_template_select( $seo_type, $language, $name, $selected ) {
+        $templates = TaranehYar_SEO::intro_templates( $seo_type, $language );
+        $preview_id = 'ty-copy-preview-' . $language . '-' . $seo_type;
+        $none_label = $language === 'en' ? 'No introduction' : 'بدون مقدمه';
+        $html = '<select class="ty-copy-template-select" name="' . esc_attr( $name ) . '" data-ty-copy-template data-content-type="' . esc_attr( $seo_type ) . '" data-language="' . esc_attr( $language ) . '" data-preview-id="' . esc_attr( $preview_id ) . '">';
+        $html .= '<option value="0" data-template=""' . selected( (string) $selected, '0', false ) . '>' . esc_html( $none_label ) . '</option>';
+        foreach ( array( 1, 2, 3 ) as $variant ) {
+            $template = isset( $templates[ $variant ] ) ? (string) $templates[ $variant ] : '';
+            $number = array( 1 => '۱', 2 => '۲', 3 => '۳' )[ $variant ];
+            $display_template = $template !== '' ? $template : ( $language === 'en' ? '[blank — no text]' : '[قالب خالی؛ متنی درج نمی‌شود]' );
+            $option_label = $language === 'en' ? 'Text ' . $variant . ' — ' . $display_template : 'متن ' . $number . ' — ' . $display_template;
+            $html .= '<option value="' . $variant . '" data-template="' . esc_attr( $template ) . '"' . selected( (string) $selected, (string) $variant, false ) . '>' . esc_html( $option_label ) . '</option>';
+        }
+        $html .= '</select>';
+        $preview = isset( $templates[ (int) $selected ] ) ? (string) $templates[ (int) $selected ] : '';
+        $preview_text = $preview !== '' ? $preview : $none_label;
+        $html .= '<div class="ty-copy-template-preview" id="' . esc_attr( $preview_id ) . '" aria-live="polite">' . esc_html( $preview_text ) . '</div>';
+        return $html;
+    }
 
-        $this->card_open( '✍️ متن دقیق فارسی و انگلیسی پست' );
-        echo '<p class="ty-hint">این جمله‌ها متن واقعی نوشته‌اند، نه شمارهٔ نوع. متغیرهایی مثل <code>{artist}</code>، <code>{track}</code>، <code>{artist_en}</code>، <code>{track_en}</code> و <code>{quality_sentence}</code> هنگام ساخت پست جایگزین می‌شوند. ویرایش این دو کادر فقط روی همین پست اثر می‌گذارد؛ برای تغییر پیش‌فرض‌ها از تنظیمات ← SEO/GEO/AIO استفاده کنید.</p>';
+    private function post_copy_fields( $seo_type ) {
+        $fa_default = TaranehYar_SEO::default_intro_variant( $seo_type, 'fa' );
+        $en_default = TaranehYar_SEO::default_intro_variant( $seo_type, 'en' );
+
+        $this->card_open( '✍️ انتخاب متن فارسی و انگلیسی پست' );
+        echo '<p class="ty-hint">متن‌ها را یک‌بار در تنظیمات ← سئو، GEO و AIO می‌نویسید. در هر نوشته فقط الگو را انتخاب کنید؛ نام خواننده، نام اثر و کیفیت‌های ارسالی خودکار جایگزین می‌شوند. گزینه‌ها متن کامل هر الگو را نشان می‌دهند.</p>';
         echo '<div class="ty-grid ty-grid-2">';
-        $this->field( 'متن فارسی نوشته', $fa_html );
-        $this->field( 'English post text', $en_html );
+        $this->field( 'متن فارسی نوشته', $this->copy_template_select( $seo_type, 'fa', 'post_text_fa', $fa_default ) );
+        $this->field( 'English post text', $this->copy_template_select( $seo_type, 'en', 'post_text_en', $en_default ) );
         echo '</div>';
         $this->card_close();
     }
@@ -200,6 +216,7 @@ class TaranehYar_Admin_Pages {
 
         $this->card_open('📝 متن آهنگ');
         $this->field( 'متن ترانه', '<textarea name="lyric" placeholder="متن آهنگ را اینجا وارد کنید..."></textarea>' );
+        echo '<p class="ty-hint">متن ترانه فقط در متای قالب (<code>music_txt</code>) ذخیره می‌شود و به متن اصلی نوشته اضافه نمی‌شود؛ این کار از نمایش دوبارهٔ ترانه جلوگیری می‌کند.</p>';
         $this->card_close();
     }
 

@@ -14,6 +14,11 @@ $GLOBALS['ty_seo_test_meta'] = array( 42 => array(
     'music320' => 'https://files.example.test/track-320.mp3',
     'fifu_image_url' => 'https://files.example.test/cover.jpg',
 ) );
+function get_option( $key, $default = array() ) {
+    return $key === 'ty_options' ? $GLOBALS['ty_seo_test_options'] : $default;
+}
+function wp_unslash( $value ) { return $value; }
+function sanitize_text_field( $value ) { return trim( strip_tags( (string) $value ) ); }
 function is_admin() { return false; }
 function is_singular( $post_type = '' ) { return $post_type === 'post'; }
 function get_queried_object_id() { return 42; }
@@ -89,6 +94,11 @@ $unused = TaranehYar_SEO::profile( 'music', array( 'artist' => 'خواننده' 
 seo_ok( strpos( $unused['title'], '{album}' ) === false && strpos( $unused['title'], '{track_count}' ) === false && strpos( $unused['title'], 'خواننده' ) !== false, 'non-applicable placeholders safely become empty strings' );
 seo_ok( TaranehYar_SEO::option_key( 'remix', 'title' ) === 'seo_title_remix', 'SEO template option keys are isolated per content type' );
 seo_ok( TaranehYar_SEO::option_key( 'unknown', 'title' ) === '', 'unknown template types are rejected' );
+seo_ok( TaranehYar_SEO::intro_option_key( 'remix', 'fa', 2 ) === 'seo_intro_2_remix', 'second Persian copy option maps to its settings key' );
+seo_ok( TaranehYar_SEO::intro_option_key( 'album', 'en', 3 ) === 'seo_intro_en_3_album', 'third English copy option maps to its settings key' );
+seo_ok( strpos( TaranehYar_SEO::default_intro_template( 'music', 'fa', 2 ), '{artist}' ) !== false, 'alternative defaults contain dynamic artist placeholders' );
+$GLOBALS['ty_seo_test_options']['seo_intro_3_music'] = '';
+seo_ok( TaranehYar_SEO::intro_template( 'music', 'fa', 3 ) === '', 'an intentionally blank saved template remains blank' );
 $custom = TaranehYar_SEO::profile( 'remix', $vars, array( 'title' => 'الگوی دلخواه {artist} / {track}' ) );
 seo_ok( $custom['title'] === 'الگوی دلخواه خواننده آزمایشی / قطعه آزمایشی', 'custom per-type SEO template renders user-defined text' );
 
@@ -110,11 +120,24 @@ $call_private = Closure::bind( function ( $method, $args ) {
 $category = $call_private( 'primary_category_details', array( array( 10, 13 ) ) );
 seo_ok( $category['id'] === 13 && $category['url'] === 'https://example.test/category/13/', 'internal category target prefers the configured most-specific category' );
 $blank_copy_profile = $call_private( 'seo_profile', array( 'remix', $vars, array( 'intro' => '', 'intro_en' => '' ) ) );
-seo_ok( $blank_copy_profile['intro'] === '' && $blank_copy_profile['intro_en'] === '', 'blank per-post copy fields intentionally suppress default introductions' );
-$remix_content = $call_private( 'release_content', array( 'remix', array( 'intro' => 'ریمیکس آزمایشی' ), array( 'نام اثر' => 'قطعه' ), '', '', array(), $category ) );
+seo_ok( $blank_copy_profile['intro'] === '' && $blank_copy_profile['intro_en'] === '', 'an explicit empty selected template suppresses the introduction' );
+$GLOBALS['ty_seo_test_options']['seo_intro_2_remix'] = 'ریمیکس «{track}» از {artist}.';
+$GLOBALS['ty_seo_test_options']['seo_intro_en_2_remix'] = 'Remix: {track_en} by {artist_en}.';
+$GLOBALS['ty_seo_test_options']['seo_copy_default_fa_remix'] = '2';
+$GLOBALS['ty_seo_test_options']['seo_copy_default_en_remix'] = '2';
+$_POST = array( 'post_text_fa' => '2', 'post_text_en' => '2' );
+$selected_copy = $call_private( 'selected_intro_overrides', array( 'remix' ) );
+seo_ok( $selected_copy['intro'] === 'ریمیکس «{track}» از {artist}.' && $selected_copy['intro_en'] === 'Remix: {track_en} by {artist_en}.', 'post form selectors load the chosen global templates, not per-post text' );
+$rendered_selected_copy = TaranehYar_SEO::profile( 'remix', $vars, $selected_copy );
+seo_ok( strpos( $rendered_selected_copy['intro'], 'قطعه آزمایشی' ) !== false && strpos( $rendered_selected_copy['intro_en'], 'Test Artist' ) !== false, 'selected global templates resolve the changing artist and track values' );
+$_POST['post_text_fa'] = 'arbitrary raw text is ignored';
+$invalid_copy = $call_private( 'selected_intro_overrides', array( 'remix' ) );
+seo_ok( strpos( $invalid_copy['intro'], 'arbitrary raw text' ) === false && $invalid_copy['intro'] === $selected_copy['intro'], 'invalid or legacy free-text submissions fall back to the configured default choice' );
+$remix_content = $call_private( 'release_content', array( 'remix', array( 'intro' => 'ریمیکس آزمایشی' ), array( 'نام اثر' => 'قطعه' ), '', array(), $category ) );
 seo_ok( strpos( $remix_content, 'category/13/' ) !== false && strpos( $remix_content, 'مشاهدهٔ ریمیکس‌های بیشتر' ) !== false, 'remix post body links to the remix category with a type-specific label' );
 seo_ok( strpos( $remix_content, 'مشاهدهٔ آهنگ‌های بیشتر' ) === false, 'remix category link does not use the generic song label' );
-$localized_content = $call_private( 'release_content', array( 'nohe', array( 'intro' => 'متن فارسی', 'intro_en' => 'Download <script>alert(1)</script>.' ), array(), '', '', array(), array() ) );
+seo_ok( strpos( $remix_content, 'ty-lyrics-section' ) === false && strpos( $remix_content, 'متن ترانه' ) === false, 'lyrics are not duplicated into post content when stored in the separate music_txt field' );
+$localized_content = $call_private( 'release_content', array( 'nohe', array( 'intro' => 'متن فارسی', 'intro_en' => 'Download <script>alert(1)</script>.' ), array(), '', array(), array() ) );
 seo_ok( strpos( $localized_content, 'lang="en" dir="ltr"' ) !== false && strpos( $localized_content, '&lt;script&gt;' ) !== false, 'English introduction is visible, left-to-right, and safely escaped' );
 
 $schema = new TaranehYar_SEO();

@@ -56,6 +56,10 @@ $seo_clean = $settings->sanitize(array(
     'seo_title_remix' => 'دانلود ریمیکس {track} از {artist}',
     'seo_intro_nohe' => "متن نوحه\nبا جزئیات",
     'seo_intro_en_remix' => "Download the remix {track_en}\nby {artist_en}.",
+    'seo_intro_2_remix' => 'ریمیکس «{track}» از {artist}.',
+    'seo_intro_en_3_album' => 'Album: {album_en} by {artist_en}.',
+    'seo_copy_default_fa_remix' => '2',
+    'seo_copy_default_en_album' => 'invalid',
 
     'seo_title_tag_enabled' => '1',
     'seo_meta_description_enabled' => '1',
@@ -65,6 +69,9 @@ $seo_clean = $settings->sanitize(array(
 settings_ok($seo_clean['seo_title_remix'] === 'دانلود ریمیکس {track} از {artist}', 'SEO templates retain supported placeholders');
 settings_ok($seo_clean['seo_intro_nohe'] === "متن نوحه\nبا جزئیات", 'intro templates keep multiline text safely');
 settings_ok($seo_clean['seo_intro_en_remix'] === "Download the remix {track_en}\nby {artist_en}.", 'English post templates are sanitized and preserve placeholders');
+settings_ok($seo_clean['seo_intro_2_remix'] === 'ریمیکس «{track}» از {artist}.', 'additional Persian copy options are persisted as templates');
+settings_ok($seo_clean['seo_intro_en_3_album'] === 'Album: {album_en} by {artist_en}.', 'additional English copy options are persisted as templates');
+settings_ok($seo_clean['seo_copy_default_fa_remix'] === '2' && $seo_clean['seo_copy_default_en_album'] === '1', 'global default copy choices are validated');
 settings_ok($seo_clean['seo_title_tag_enabled'] === '1', 'document title fallback toggle accepts enabled state');
 settings_ok($seo_clean['seo_meta_description_enabled'] === '1', 'base description meta toggle accepts enabled state');
 settings_ok($seo_clean['seo_jsonld_enabled'] === '1', 'JSON-LD toggle accepts enabled state');
@@ -74,6 +81,14 @@ $english_intro_keys = array('seo_intro_en_music', 'seo_intro_en_remix', 'seo_int
 $english_intro_registered = true;
 foreach ($english_intro_keys as $english_intro_key) { if (!in_array($english_intro_key, TaranehYar_Settings::ALL_KEYS, true)) $english_intro_registered = false; }
 settings_ok($english_intro_registered, 'English introduction templates are saved for every content type');
+$copy_setting_keys = array(
+    'seo_intro_2_music', 'seo_intro_3_remix', 'seo_intro_en_2_nohe', 'seo_intro_en_3_video',
+    'seo_copy_default_fa_album', 'seo_copy_default_en_music',
+);
+$copy_settings_registered = true;
+foreach ($copy_setting_keys as $copy_setting_key) { if (!in_array($copy_setting_key, TaranehYar_Settings::ALL_KEYS, true)) $copy_settings_registered = false; }
+settings_ok($copy_settings_registered, 'template variants and global defaults are registered for all post types');
+settings_ok(!in_array('seo_include_lyrics', TaranehYar_Settings::ALL_KEYS, true), 'lyrics are no longer configured for insertion into the post body');
 
 echo $fails === 0 ? "\nALL TESTS PASSED\n" : "\n$fails TEST(S) FAILED\n";
 exit($fails === 0 ? 0 : 1);

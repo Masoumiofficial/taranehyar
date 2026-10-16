@@ -34,13 +34,24 @@ class TaranehYar_Settings {
         'meta_key_album128','meta_key_album320','meta_key_video480p',
         'meta_key_video720p','meta_key_video1080p','meta_key_fifu_image_alt',
         'seo_title_tag_enabled','seo_meta_description_enabled','seo_jsonld_enabled','seo_category_links_enabled','seo_visible_details_enabled',
-        'seo_include_lyrics','seo_album_tracklist_enabled',
+        'seo_album_tracklist_enabled',
         'seo_post_title_music','seo_title_music','seo_description_music','seo_intro_music','seo_focus_music',
         'seo_post_title_remix','seo_title_remix','seo_description_remix','seo_intro_remix','seo_focus_remix',
         'seo_post_title_nohe','seo_title_nohe','seo_description_nohe','seo_intro_nohe','seo_focus_nohe',
         'seo_post_title_video','seo_title_video','seo_description_video','seo_intro_video','seo_focus_video',
         'seo_post_title_album','seo_title_album','seo_description_album','seo_intro_album','seo_intro_en_album','seo_focus_album',
         'seo_intro_en_music','seo_intro_en_remix','seo_intro_en_nohe','seo_intro_en_video',
+        'seo_intro_2_music','seo_intro_3_music','seo_intro_2_remix','seo_intro_3_remix',
+        'seo_intro_2_nohe','seo_intro_3_nohe','seo_intro_2_video','seo_intro_3_video',
+        'seo_intro_2_album','seo_intro_3_album',
+        'seo_intro_en_2_music','seo_intro_en_3_music','seo_intro_en_2_remix','seo_intro_en_3_remix',
+        'seo_intro_en_2_nohe','seo_intro_en_3_nohe','seo_intro_en_2_video','seo_intro_en_3_video',
+        'seo_intro_en_2_album','seo_intro_en_3_album',
+        'seo_copy_default_fa_music','seo_copy_default_en_music',
+        'seo_copy_default_fa_remix','seo_copy_default_en_remix',
+        'seo_copy_default_fa_nohe','seo_copy_default_en_nohe',
+        'seo_copy_default_fa_video','seo_copy_default_en_video',
+        'seo_copy_default_fa_album','seo_copy_default_en_album',
     );
 
     public function init() {
@@ -67,7 +78,9 @@ class TaranehYar_Settings {
                 $clean[ $k ] = self::get( 'apitoken' );
                 continue;
             }
-            if ( in_array( $k, array( 'seo_title_tag_enabled', 'seo_meta_description_enabled', 'seo_jsonld_enabled', 'seo_category_links_enabled', 'seo_visible_details_enabled', 'seo_include_lyrics', 'seo_album_tracklist_enabled' ), true ) ) {
+            if ( strpos( $k, 'seo_copy_default_' ) === 0 ) {
+                $clean[ $k ] = in_array( $value, array( '0', '1', '2', '3' ), true ) ? $value : '1';
+            } elseif ( in_array( $k, array( 'seo_title_tag_enabled', 'seo_meta_description_enabled', 'seo_jsonld_enabled', 'seo_category_links_enabled', 'seo_visible_details_enabled', 'seo_album_tracklist_enabled' ), true ) ) {
                 $clean[ $k ] = $value === '1' ? '1' : '0';
             } elseif ( $k === 'singer_taxonomy' || strpos( $k, 'meta_key_' ) === 0 ) {
                 $clean[ $k ] = sanitize_key( $value );
@@ -94,8 +107,46 @@ class TaranehYar_Settings {
     }
 
     private function textarea_row( $opts, $key, $label, $placeholder = '', $default_value = '' ) {
-        $value = isset( $opts[ $key ] ) && $opts[ $key ] !== '' ? $opts[ $key ] : $default_value;
-        echo '<tr><th><label for="' . esc_attr( $key ) . '">' . esc_html( $label ) . '</label></th><td><textarea class="ty-seo-template" id="' . esc_attr( $key ) . '" name="ty_options[' . esc_attr( $key ) . ']" rows="3" placeholder="' . esc_attr( $placeholder ) . '">' . esc_textarea( $value ) . '</textarea></td></tr>';
+        $value = array_key_exists( $key, $opts ) ? $opts[ $key ] : $default_value;
+        $language_class = strpos( $key, 'seo_intro_en_' ) === 0 ? ' ty-seo-template-en' : '';
+        $direction = $language_class !== '' ? 'ltr' : 'rtl';
+        echo '<tr><th><label for="' . esc_attr( $key ) . '">' . esc_html( $label ) . '</label></th><td><textarea class="ty-seo-template' . $language_class . '" id="' . esc_attr( $key ) . '" dir="' . esc_attr( $direction ) . '" name="ty_options[' . esc_attr( $key ) . ']" rows="3" placeholder="' . esc_attr( $placeholder ) . '">' . esc_textarea( $value ) . '</textarea></td></tr>';
+    }
+
+    private function select_row( $opts, $key, $label, array $choices, $default = '1' ) {
+        $value = isset( $opts[ $key ] ) ? (string) $opts[ $key ] : (string) $default;
+        if ( ! array_key_exists( $value, $choices ) ) $value = (string) $default;
+        echo '<tr><th><label for="' . esc_attr( $key ) . '">' . esc_html( $label ) . '</label></th><td><select class="ty-setting-select" id="' . esc_attr( $key ) . '" name="ty_options[' . esc_attr( $key ) . ']">';
+        foreach ( $choices as $choice_value => $choice_label ) {
+            echo '<option value="' . esc_attr( $choice_value ) . '"' . selected( $value, (string) $choice_value, false ) . '>' . esc_html( $choice_label ) . '</option>';
+        }
+        echo '</select></td></tr>';
+    }
+
+    private function copy_template_settings( $opts, $type ) {
+        $choices = array( '0' => 'بدون متن' );
+        foreach ( array( 1, 2, 3 ) as $variant ) {
+            $choices[ (string) $variant ] = 'متن ' . array( 1 => '۱', 2 => '۲', 3 => '۳' )[ $variant ];
+        }
+
+        echo '<div class="ty-copy-template-settings">';
+        echo '<p class="ty-hint">قالب‌ها را یک‌بار اینجا تنظیم کنید؛ نام خواننده، اثر و کیفیت‌های واردشده هنگام ساخت پست خودکار جایگزین می‌شوند. در فرم ارسال فقط متن ذخیره‌شده را انتخاب می‌کنید.</p>';
+        foreach ( array( 'fa' => 'فارسی', 'en' => 'English' ) as $language => $language_label ) {
+            echo '<section class="ty-copy-template-language" lang="' . esc_attr( $language === 'en' ? 'en' : 'fa' ) . '">';
+            echo '<h3>' . esc_html( 'قالب‌های متن ' . $language_label ) . '</h3>';
+            $default_key = 'seo_copy_default_' . $language . '_' . $type;
+            $this->select_row( $opts, $default_key, 'متن پیش‌فرض فرم', $choices, '1' );
+            echo '<table class="ty-settings-table ty-copy-template-table">';
+            foreach ( array( 1, 2, 3 ) as $variant ) {
+                $key = TaranehYar_SEO::intro_option_key( $type, $language, $variant );
+                $default = TaranehYar_SEO::default_intro_template( $type, $language, $variant );
+                $number = array( 1 => '۱', 2 => '۲', 3 => '۳' )[ $variant ];
+                $label = ( $language === 'en' ? 'Text ' : 'متن ' ) . $number;
+                $this->textarea_row( $opts, $key, $label, $default, $default );
+            }
+            echo '</table></section>';
+        }
+        echo '</div>';
     }
 
     private function checkbox_row( $opts, $key, $label, $default = '1' ) {
@@ -105,6 +156,7 @@ class TaranehYar_Settings {
 
     public function render_settings_page() {
         $opts = get_option( 'ty_options', array() );
+        $opts = is_array( $opts ) ? $opts : array();
         ?>
         <div class="ty-wrap" dir="rtl" data-theme="light">
             <div class="ty-header">
@@ -142,8 +194,13 @@ class TaranehYar_Settings {
                 <a href="#ty-settings-site">اطلاعات سایت</a>
                 <a href="#ty-settings-categories">دسته‌بندی‌ها</a>
                 <a href="#ty-settings-meta">متادیتای قالب</a>
-                <a href="#ty-settings-seo">SEO / GEO / AIO</a>
+                <a href="#ty-settings-seo">SEO / GEO / AIO و متن پست</a>
             </nav>
+            <div class="ty-settings-tools" aria-label="نمایش بخش‌ها">
+                <span>بخش‌ها را برای دیدن تنظیمات باز کنید:</span>
+                <button type="button" class="ty-settings-tool" data-ty-settings-expand>بازکردن همه</button>
+                <button type="button" class="ty-settings-tool" data-ty-settings-collapse>بستن همه</button>
+            </div>
 
             <form method="post" action="options.php" class="ty-settings-form">
                 <?php settings_fields( 'ty_options_group' ); ?>
@@ -213,7 +270,7 @@ class TaranehYar_Settings {
                     </div>
                 </details>
 
-                <details class="ty-settings-group" id="ty-settings-seo">
+                <details class="ty-settings-group" id="ty-settings-seo" open>
                     <summary><span>🔎 سئو، GEO و AIO</span><small>قواعد نوشته، متادیتا، نمایش اطلاعات و Schema</small></summary>
                     <div class="ty-settings-group-body">
                         <p class="ty-hint">پیش‌فرض‌های فارسی و انگلیسی برای هر نوع محتوا دقیق و قابل ویرایش‌اند. متغیرهایی مثل <code>{artist}</code> و <code>{track_en}</code> هنگام ساخت پست با اطلاعات واقعی جایگزین می‌شوند؛ متغیر نامرتبط خالی می‌شود. قالب‌های سئو فقط روی پست‌های جدید اعمال می‌شوند و تنظیمات سراسری افزونه‌های SEO را تغییر نمی‌دهند.</p>
@@ -224,7 +281,6 @@ class TaranehYar_Settings {
                             $this->checkbox_row( $opts, 'seo_jsonld_enabled', 'Schema.org برای موزیک، آلبوم و ویدیو' );
                             $this->checkbox_row( $opts, 'seo_category_links_enabled', 'پیوند داخلی به دستهٔ مرتبط' );
                             $this->checkbox_row( $opts, 'seo_visible_details_enabled', 'نمایش مشخصات اثر و عوامل' );
-                            $this->checkbox_row( $opts, 'seo_include_lyrics', 'نمایش متن ترانه/نوحه در پست' );
                             $this->checkbox_row( $opts, 'seo_album_tracklist_enabled', 'نمایش فهرست ترک آلبوم' );
                             ?>
                         </table>
@@ -233,15 +289,13 @@ class TaranehYar_Settings {
                                 <summary><?php echo esc_html( $seo_type_label ); ?></summary>
                                 <table class="ty-settings-table">
                                     <?php foreach ( TaranehYar_SEO::TEMPLATE_FIELDS as $field => $field_label ) :
+                                        if ( in_array( $field, array( 'intro', 'intro_en' ), true ) ) continue;
                                         $option_key = TaranehYar_SEO::option_key( $seo_type, $field );
                                         $default_template = TaranehYar_SEO::default_template( $seo_type, $field );
-                                        if ( in_array( $field, array( 'intro', 'intro_en' ), true ) ) {
-                                            $this->textarea_row( $opts, $option_key, $field_label, $default_template, $default_template );
-                                        } else {
-                                            $this->row( $opts, $option_key, $field_label, $default_template, $default_template );
-                                        }
+                                        $this->row( $opts, $option_key, $field_label, $default_template, $default_template );
                                     endforeach; ?>
                                 </table>
+                                <?php $this->copy_template_settings( $opts, $seo_type ); ?>
                             </details>
                         <?php endforeach; ?>
                         <p class="ty-hint">این ابزارها محتوای دقیق و دادهٔ معنایی مکمل تولید می‌کنند؛ جایگزین محتوای واقعی یا تضمین رتبه نیستند.</p>
