@@ -5,7 +5,7 @@
  */
 define( 'ABSPATH', __DIR__ . '/' );
 define( 'TY_PLUGIN_URL', 'https://example.test/plugins/taranehyar/' );
-define( 'TY_VERSION', '2.0.0' );
+define( 'TY_VERSION', '2.0.1' );
 $GLOBALS['ty_seo_test_options'] = array();
 $GLOBALS['ty_seo_test_styles'] = array();
 $GLOBALS['ty_seo_test_post_updates'] = array();
@@ -83,6 +83,7 @@ $vars = array(
     'artist_en' => 'Test Artist',
     'track_en' => 'Test Track',
     'album' => 'آلبوم آزمایشی',
+    'album_en' => 'Test Album',
     'site' => 'سایت نمونه',
     'qualities' => '۱۲۸ و ۳۲۰',
     'quality_sentence' => 'فایل صوتی در دسترس است.',
@@ -104,10 +105,10 @@ seo_ok( strpos( $remix['description'], 'دانلود ریمیکس' ) !== false &
 seo_ok( strpos( $remix['focus'], 'دانلود ریمیکس' ) !== false, 'remix focus phrase is type-specific' );
 seo_ok( strpos( $nohe['title'], 'دانلود نوحه و مداحی' ) !== false, 'nohe SEO title uses the devotional phrase' );
 seo_ok( strpos( $nohe['description'], 'دانلود نوحه و مداحی' ) !== false, 'nohe description uses the devotional phrase' );
-seo_ok( stripos( $remix['intro_en'], 'remix' ) !== false && strpos( $remix['intro_en'], 'Test Track' ) !== false, 'remix gets a precise English post introduction' );
+seo_ok( strpos( $remix['intro_en'], 'Download New Remix Test Artist – Test Track' ) === 0, 'remix gets a precise English post introduction' );
 seo_ok( stripos( $nohe['intro_en'], 'devotional recitation' ) !== false && strpos( $nohe['intro_en'], 'Test Artist' ) !== false, 'nohe gets a precise English devotional introduction' );
-seo_ok( strpos( $video['intro_en'], 'Music video:' ) === 0 && strpos( $video['intro_en'], 'Test Track' ) !== false, 'video gets an English introduction with its real title' );
-seo_ok( strpos( $album['intro_en'], 'Album entry:' ) === 0 && strpos( $album['intro_en'], 'Track count: 5' ) !== false, 'album English introduction uses the submitted album and numeric track count' );
+seo_ok( strpos( $video['intro_en'], 'Download New Music Video Test Artist – Test Track' ) === 0, 'video gets an English introduction with its real title' );
+seo_ok( strpos( $album['intro_en'], 'Download New Album Test Artist – Test Album' ) === 0, 'album English introduction uses the submitted album title' );
 $english_intros = array( $music['intro_en'], $remix['intro_en'], $nohe['intro_en'], $video['intro_en'], $album['intro_en'] );
 seo_ok( count( array_filter( $english_intros, function ( $text ) { return preg_match( '/\\.$/u', $text ) === 1; } ) ) === 0, 'English introduction defaults end without a period' );
 seo_ok( strpos( $remix['intro'] . $remix['intro_en'], '۱۲۸' ) === false && strpos( $remix['intro_en'], 'Submitted formats:' ) === false, 'Persian and English introductions keep file qualities out of the copy' );
@@ -129,7 +130,14 @@ seo_ok( TaranehYar_SEO::option_key( 'remix', 'title' ) === 'seo_title_remix', 'S
 seo_ok( TaranehYar_SEO::option_key( 'unknown', 'title' ) === '', 'unknown template types are rejected' );
 seo_ok( TaranehYar_SEO::intro_option_key( 'remix', 'fa', 2 ) === 'seo_intro_2_remix', 'second Persian copy option maps to its settings key' );
 seo_ok( TaranehYar_SEO::intro_option_key( 'album', 'en', 3 ) === 'seo_intro_en_3_album', 'third English copy option maps to its settings key' );
-seo_ok( strpos( TaranehYar_SEO::default_intro_template( 'music', 'fa', 2 ), '{artist}' ) !== false, 'alternative defaults contain dynamic artist placeholders' );
+seo_ok( strpos( TaranehYar_SEO::default_intro_template( 'music', 'fa', 2 ), 'دانلود' ) === 0 && strpos( TaranehYar_SEO::default_intro_template( 'music', 'fa', 2 ), '{artist}' ) !== false, 'alternative defaults link the download word and retain dynamic artist placeholders' );
+$GLOBALS['ty_seo_test_options']['seo_intro_music'] = 'آهنگ «{track}» از {artist}.';
+$GLOBALS['ty_seo_test_options']['seo_intro_en_2_remix'] = 'This post introduces the remix “{track_en}” by {artist_en}';
+seo_ok(
+    TaranehYar_SEO::intro_template( 'music', 'fa', 1 ) === TaranehYar_SEO::default_intro_template( 'music', 'fa', 1 )
+        && TaranehYar_SEO::intro_template( 'remix', 'en', 2 ) === TaranehYar_SEO::default_intro_template( 'remix', 'en', 2 ),
+    'previous built-in saved templates upgrade automatically to the new layouts'
+);
 $GLOBALS['ty_seo_test_options']['seo_intro_3_music'] = '';
 seo_ok( TaranehYar_SEO::intro_template( 'music', 'fa', 3 ) === '', 'an intentionally blank saved template remains blank' );
 $custom = TaranehYar_SEO::profile( 'remix', $vars, array( 'title' => 'الگوی دلخواه {artist} / {track}' ) );
@@ -147,7 +155,7 @@ $seo = new TaranehYar_SEO();
 $seo->enqueue_content_styles();
 seo_ok( isset( $GLOBALS['ty_seo_test_styles']['ty-release-content'] ) && $GLOBALS['ty_seo_test_styles']['ty-release-content'][0] === TY_PLUGIN_URL . 'assets/css/content.css', 'single-post pages enqueue the new release-card stylesheet' );
 $content_css = file_get_contents( __DIR__ . '/../taranehyar/assets/css/content.css' );
-seo_ok( preg_match( '/\\.ty-release-content\\s*\\{[^}]*text-align:\\s*center;/s', $content_css ) === 1 && preg_match( '/\\.ty-release-content \\.ty-release-facts dl > div\\s*\\{[^}]*flex-direction:\\s*column;/s', $content_css ) === 1 && strpos( $content_css, 'ty-category-link' ) === false, 'release cards and fact values are centered with separated facts and no CTA styling' );
+seo_ok( preg_match( '/\\.ty-release-content\\s*\\{[^}]*text-align:\\s*center;/s', $content_css ) === 1 && strpos( $content_css, 'ty-release-facts' ) === false && strpos( $content_css, 'ty-category-link' ) === false, 'post copy is centered and the inline facts panel has been removed' );
 seo_ok( $seo->filter_document_title( 'عنوان قالب' ) === 'عنوان SEO سفارشی', 'SEO title fallback applies when no SEO plugin owns the title' );
 $GLOBALS['ty_seo_test_options']['seo_title_tag_enabled'] = '0';
 seo_ok( $seo->filter_document_title( 'عنوان قالب' ) === 'عنوان قالب', 'document-title fallback can be disabled from settings' );
@@ -196,7 +204,7 @@ seo_ok(
         && $labeled_submitted_credits['تنظیم‌کننده'] === 'تنظیم‌کننده تازه'
         && $labeled_submitted_credits['میکس و مسترینگ'] === 'میکس‌کننده تازه'
         && $labeled_submitted_credits['تهیه‌کننده / تولیدکننده'] === 'تولیدکننده تازه',
-    'submitted role keys map to clear Persian labels for the post facts card'
+    'submitted role keys map to clear Persian labels for theme metadata'
 );
 $_POST = array( 'lyrc' => 'شاعر قدیمی', 'melody' => 'آهنگساز قدیمی', 'arrng' => 'تنظیم قدیمی', 'mix' => 'میکس قدیمی' );
 $legacy_credits = $call_private( 'submitted_credit_values', array() );
@@ -261,24 +269,61 @@ $GLOBALS['ty_seo_test_options']['credit_producer_enabled'] = '0';
 $call_private( 'save_credit_values', array( 78, array( 'producer' => 'نباید ذخیره شود' ) ) );
 seo_ok( empty( $GLOBALS['ty_seo_test_saved_meta'][78] ), 'disabled credits are not persisted even if passed directly to the saver' );
 $GLOBALS['ty_seo_test_options']['credit_producer_enabled'] = '1';
-$remix_content = $call_private( 'release_content', array( 'remix', array( 'intro' => 'ریمیکس آزمایشی' ), array( 'نام اثر' => 'قطعه' ), '', array(), $category ) );
-seo_ok( strpos( $remix_content, 'category/13/' ) !== false && strpos( $remix_content, 'class="ty-release-keyword-link"' ) !== false && strpos( $remix_content, 'ty-category-link' ) === false, 'remix category URL is attached to the work keyword instead of a separate CTA' );
-seo_ok( strpos( $remix_content, 'مشاهدهٔ ریمیکس‌های بیشتر' ) === false && strpos( $remix_content, 'مشاهدهٔ آهنگ‌های بیشتر' ) === false, 'standalone category CTAs are absent from generated post content' );
+$remix_terms = array( 'artist' => 'ریمیکس‌خوان آزمایشی', 'track' => 'ریمیکس آزمایشی', 'artist_en' => 'Test Remix Artist', 'track_en' => 'Test Remix' );
+$remix_intro = TaranehYar_SEO::profile( 'remix', array_merge( $vars, $remix_terms ) );
+$remix_content = $call_private( 'release_content', array( 'remix', $remix_intro, array(), '', array(), $category, $remix_terms ) );
+seo_ok(
+    strpos( $remix_content, '<a class="ty-release-keyword-link" href="https://example.test/category/13/">دانلود</a> ریمیکس جدید' ) !== false
+        && strpos( $remix_content, 'ریمیکس‌های بیشتر' ) === false,
+    'remix download text links to its configured category without a separate category CTA'
+);
+$music_terms = array( 'artist' => 'ناصر زینعلی 13', 'track' => 'زود رفت', 'artist_en' => 'Naser Zeynali-13', 'track_en' => 'Zood Raft' );
+$music_intro = TaranehYar_SEO::profile( 'music', array_merge( $vars, $music_terms ) );
 $music_content = $call_private( 'release_content', array(
     'music',
-    array( 'intro' => 'آهنگ «زود رفت» از ناصر زینعلی 13', 'intro_en' => '“Zood Raft” by Naser Zeynali-13' ),
-    array( 'خواننده' => 'ناصر زینعلی 13', 'نام اثر' => 'زود رفت' ),
+    $music_intro,
+    array( 'خواننده' => 'ناصر زینعلی 13', 'نام اثر' => 'زود رفت', 'کیفیت‌های ورودی' => '۱۲۸ و ۳۲۰' ),
     'توضیح مستقل دربارهٔ این اثر.',
     array(),
     $category,
-    array( 'artist' => 'ناصر زینعلی 13', 'artist_en' => 'Naser Zeynali-13', 'track' => 'زود رفت', 'track_en' => 'Zood Raft' ),
+    $music_terms,
 ) );
-seo_ok( strpos( $music_content, '<a class="ty-release-keyword-link" href="https://example.test/category/13/">زود رفت</a>' ) !== false && strpos( $music_content, '<a class="ty-release-keyword-link" href="https://example.test/category/13/">Zood Raft</a>' ) !== false, 'main Persian and English work keywords link inline to the configured category' );
-seo_ok( strpos( $music_content, '<h2>دربارهٔ اثر و آهنگ «زود رفت» از ناصر زینعلی 13</h2>' ) !== false, 'about heading includes the work title and singer without a trailing full stop' );
-seo_ok( strpos( $music_content, '<dt>خواننده</dt><dd>' ) !== false && strpos( $music_content, '<dt>نام اثر</dt><dd>' ) !== false, 'fact labels and values remain distinct markup elements' );
+seo_ok(
+    strpos( $music_content, '<p style="text-align: center;" lang="fa" dir="rtl"><a class="ty-release-keyword-link" href="https://example.test/category/13/">دانلود</a> آهنگ جدید <span class="ty-singer-link-placeholder"><strong>ناصر زینعلی 13</strong></span> به نام <strong>زود رفت</strong></p>' ) !== false,
+    'Persian introduction matches the centered download, linked bold singer, and bold title layout'
+);
+seo_ok(
+    strpos( $music_content, '<p style="text-align: center;" lang="en" dir="ltr">Download New Music <span class="ty-singer-link-placeholder"><strong>Naser Zeynali-13</strong></span> – <strong>Zood Raft</strong></p>' ) !== false,
+    'English introduction repeats the bold linked singer and bold title in a centered paragraph'
+);
+seo_ok( strpos( $music_content, '<a class="ty-release-keyword-link" href="https://example.test/category/13/">زود رفت</a>' ) === false, 'the work title is bold rather than linked in the requested intro' );
+seo_ok( strpos( $music_content, '<h2>دربارهٔ اثر و آهنگ «زود رفت» از ناصر زینعلی 13</h2>' ) !== false, 'about heading remains available without a duplicate category link' );
+seo_ok( strpos( $music_content, 'ty-release-facts' ) === false && strpos( $music_content, '<dt>خواننده</dt>' ) === false && strpos( $music_content, 'کیفیت‌های ورودی' ) === false, 'mapped facts and credits are omitted from post content for the theme box' );
 $linked_music_content = $call_private( 'link_singer_in_content', array( 42, $music_content, 'ناصر زینعلی 13' ) );
-seo_ok( strpos( $linked_music_content, 'href="https://example.test/singer/test-singer/"' ) !== false && strpos( $linked_music_content, 'class="ty-singer-link-placeholder"' ) === false, 'singer placeholder resolves to its internal taxonomy archive link' );
-seo_ok( ! empty( $GLOBALS['ty_seo_test_post_updates'] ) && $GLOBALS['ty_seo_test_post_updates'][0]['post_content'] === $linked_music_content, 'resolved singer link is saved into the inserted post content' );
+seo_ok(
+    substr_count( $linked_music_content, 'href="https://example.test/singer/test-singer/"' ) === 2
+        && strpos( $linked_music_content, '<a class="ty-singer-link" href="https://example.test/singer/test-singer/"><strong>ناصر زینعلی 13</strong></a>' ) !== false
+        && strpos( $linked_music_content, 'class="ty-singer-link-placeholder"' ) === false,
+    'both Persian and English singer links resolve to the singer archive while preserving bold markup'
+);
+seo_ok( ! empty( $GLOBALS['ty_seo_test_post_updates'] ) && $GLOBALS['ty_seo_test_post_updates'][0]['post_content'] === $linked_music_content, 'resolved singer links are saved into the inserted post content' );
+$category_targets = array(
+    'music' => 'https://example.test/category/music/',
+    'remix' => 'https://example.test/category/remix/',
+    'nohe' => 'https://example.test/category/nohe/',
+    'video' => 'https://example.test/category/video/',
+    'album' => 'https://example.test/category/album/',
+);
+$category_links_work_for_all_types = true;
+foreach ( $category_targets as $content_type => $category_url ) {
+    $terms = array_merge( $music_terms, array( 'track' => $content_type === 'album' ? 'آلبوم آزمایشی' : 'قطعه آزمایشی', 'track_en' => $content_type === 'album' ? 'Test Album' : 'Test Track' ) );
+    $intro_profile = TaranehYar_SEO::profile( $content_type, array_merge( $vars, $terms, array( 'album' => 'آلبوم آزمایشی', 'album_en' => 'Test Album' ) ) );
+    $rendered = $call_private( 'release_content', array( $content_type, $intro_profile, array(), '', array(), array( 'url' => $category_url ), $terms ) );
+    if ( strpos( $rendered, '<a class="ty-release-keyword-link" href="' . $category_url . '">دانلود</a>' ) === false ) {
+        $category_links_work_for_all_types = false;
+    }
+}
+seo_ok( $category_links_work_for_all_types, 'music, remix, nohe, video, and album download words link to their own configured category' );
 seo_ok( strpos( $remix_content, 'ty-lyrics-section' ) === false && strpos( $remix_content, 'متن ترانه' ) === false, 'lyrics are not duplicated into post content when stored in the separate music_txt field' );
 $credits = array(
     'ترانه‌سرا' => 'شاعر آزمایشی',
@@ -307,13 +352,13 @@ $styled_content = $call_private( 'release_content', array(
     $credits,
     array(),
 ) );
-seo_ok( strpos( $styled_content, 'ty-release-intro-card' ) !== false && strpos( $styled_content, 'ty-release-about' ) !== false && strpos( $styled_content, 'ty-release-facts' ) !== false, 'introduction, about text and structured facts render in distinct cards' );
-seo_ok( strpos( $styled_content, '</section><!--more-->' ) !== false, 'WordPress more marker follows the complete introduction card' );
-$each_credit_appears_once = true;
+seo_ok( strpos( $styled_content, '<p style="text-align: center;"' ) !== false && strpos( $styled_content, 'ty-release-about' ) !== false && strpos( $styled_content, 'ty-release-facts' ) === false, 'centered intro and optional about text remain while the facts card is omitted' );
+seo_ok( strpos( $styled_content, '</p><!--more-->' ) !== false, 'WordPress more marker follows the centered introduction paragraphs' );
+$credits_omitted_from_content = true;
 foreach ( array_values( $credits ) as $credit_value ) {
-    if ( substr_count( $styled_content, $credit_value ) !== 1 ) $each_credit_appears_once = false;
+    if ( strpos( $styled_content, $credit_value ) !== false ) $credits_omitted_from_content = false;
 }
-seo_ok( $each_credit_appears_once && strpos( $styled_content, 'صدای اثر آرام است.' ) !== false, 'all five credits appear once in facts while unrelated about text remains' );
+seo_ok( $credits_omitted_from_content && strpos( $styled_content, 'صدای اثر آرام است.' ) !== false, 'credits stay out of post content while unrelated about text remains' );
 $localized_content = $call_private( 'release_content', array( 'nohe', array( 'intro' => 'متن فارسی', 'intro_en' => 'Download <script>alert(1)</script>.' ), array(), '', array(), array() ) );
 seo_ok( strpos( $localized_content, 'lang="en" dir="ltr"' ) !== false && strpos( $localized_content, '&lt;script&gt;' ) !== false, 'English introduction is visible, left-to-right, and safely escaped' );
 

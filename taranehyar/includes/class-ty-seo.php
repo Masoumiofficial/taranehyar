@@ -32,40 +32,40 @@ class TaranehYar_SEO {
             'post_title'  => 'دانلود آهنگ {artist} به نام {track}',
             'title'       => 'دانلود آهنگ {artist} به نام {track} | {site}',
             'description' => 'دانلود آهنگ «{track}» از {artist}. {quality_sentence}',
-            'intro'       => 'آهنگ «{track}» از {artist}.',
-            'intro_en'    => '“{track_en}” by {artist_en}',
+            'intro'       => 'دانلود آهنگ جدید {artist} به نام {track}',
+            'intro_en'    => 'Download New Music {artist_en} – {track_en}',
             'focus'       => 'دانلود آهنگ {artist} {track}',
         ),
         'remix' => array(
             'post_title'  => 'دانلود ریمیکس {track} از {artist}',
             'title'       => 'دانلود ریمیکس {track} از {artist} | {site}',
             'description' => 'دانلود ریمیکس «{track}» از {artist}. {quality_sentence}',
-            'intro'       => 'ریمیکس «{track}» از {artist}.',
-            'intro_en'    => 'Remix: “{track_en}” by {artist_en}',
+            'intro'       => 'دانلود ریمیکس جدید {artist} به نام {track}',
+            'intro_en'    => 'Download New Remix {artist_en} – {track_en}',
             'focus'       => 'دانلود ریمیکس {artist} {track}',
         ),
         'nohe' => array(
             'post_title'  => 'دانلود مداحی {track} با صدای {artist}',
             'title'       => 'دانلود نوحه و مداحی {track} از {artist} | {site}',
             'description' => 'دانلود نوحه و مداحی «{track}» با صدای {artist}. {quality_sentence}',
-            'intro'       => 'نوحه/مداحی «{track}» با صدای {artist}.',
-            'intro_en'    => 'Devotional recitation: “{track_en}” by {artist_en}',
+            'intro'       => 'دانلود نوحه و مداحی جدید با صدای {artist} به نام {track}',
+            'intro_en'    => 'Download New Devotional Recitation {artist_en} – {track_en}',
             'focus'       => 'دانلود مداحی {artist} {track}',
         ),
         'video' => array(
             'post_title'  => 'دانلود موزیک ویدیو {artist} به نام {track}',
             'title'       => 'دانلود موزیک ویدیو {artist} به نام {track} | {site}',
             'description' => 'مشاهده و دانلود موزیک‌ویدیوی «{track}» از {artist}. {quality_sentence}',
-            'intro'       => 'موزیک‌ویدیوی «{track}» از {artist}.',
-            'intro_en'    => 'Music video: “{track_en}” by {artist_en}',
+            'intro'       => 'دانلود موزیک ویدیو جدید {artist} به نام {track}',
+            'intro_en'    => 'Download New Music Video {artist_en} – {track_en}',
             'focus'       => 'دانلود موزیک ویدیو {artist} {track}',
         ),
         'album' => array(
             'post_title'  => 'دانلود آلبوم {album} از {artist}',
             'title'       => 'دانلود آلبوم {album} از {artist} | {site}',
             'description' => 'آلبوم «{album}» از {artist} با {track_count} قطعهٔ ثبت‌شده.',
-            'intro'       => 'اطلاعات آلبوم «{album}» از {artist}؛ تعداد قطعه‌های ثبت‌شده: {track_count}.',
-            'intro_en'    => 'Album entry: “{album_en}” by {artist_en}. Track count: {track_count_en}',
+            'intro'       => 'دانلود آلبوم جدید {artist} به نام {album}',
+            'intro_en'    => 'Download New Album {artist_en} – {album_en}',
             'focus'       => 'دانلود آلبوم {artist} {album}',
         ),
     );
@@ -74,52 +74,52 @@ class TaranehYar_SEO {
     const ALT_INTRO_TEMPLATES = array(
         'music' => array(
             'fa' => array(
-                2 => 'در این نوشته، آهنگ «{track}» با صدای {artist} معرفی می‌شود.',
-                3 => 'نام اثر: «{track}» | خواننده: {artist}.',
+                2 => 'دانلود آهنگ تازهٔ {artist} با نام {track}',
+                3 => 'دانلود آهنگ «{track}» از {artist}',
             ),
             'en' => array(
-                2 => 'This post introduces “{track_en}” by {artist_en}',
-                3 => 'Track: “{track_en}” | Artist: {artist_en}',
+                2 => 'Download a New Song by {artist_en}: {track_en}',
+                3 => 'Download the Latest Song by {artist_en}: {track_en}',
             ),
         ),
         'remix' => array(
             'fa' => array(
-                2 => 'ریمیکس «{track}» با اجرای {artist} معرفی می‌شود.',
-                3 => 'نام ریمیکس: «{track}» | هنرمند: {artist}.',
+                2 => 'دانلود ریمیکس تازهٔ {artist} با نام {track}',
+                3 => 'دانلود ریمیکس «{track}» از {artist}',
             ),
             'en' => array(
-                2 => 'This post introduces the remix “{track_en}” by {artist_en}',
-                3 => 'Remix: “{track_en}” | Artist: {artist_en}',
+                2 => 'Download a New Remix by {artist_en}: {track_en}',
+                3 => 'Download the Latest Remix by {artist_en}: {track_en}',
             ),
         ),
         'nohe' => array(
             'fa' => array(
-                2 => 'نوحه/مداحی «{track}» با صدای {artist} معرفی می‌شود.',
-                3 => 'عنوان نوحه: «{track}» | مداح: {artist}.',
+                2 => 'دانلود مداحی تازه با صدای {artist}، با عنوان {track}',
+                3 => 'دانلود نوحهٔ {artist}: {track}',
             ),
             'en' => array(
-                2 => 'This post introduces the devotional recitation “{track_en}” by {artist_en}',
-                3 => 'Recitation: “{track_en}” | Performer: {artist_en}',
+                2 => 'Download a New Devotional Recitation by {artist_en}: {track_en}',
+                3 => 'Download the Latest Recitation by {artist_en}: {track_en}',
             ),
         ),
         'video' => array(
             'fa' => array(
-                2 => 'موزیک‌ویدیوی «{track}» از {artist} معرفی می‌شود.',
-                3 => 'عنوان ویدیو: «{track}» | هنرمند: {artist}.',
+                2 => 'دانلود موزیک‌ویدیوی تازهٔ {artist} با عنوان {track}',
+                3 => 'دانلود موزیک‌ویدیوی {artist}: {track}',
             ),
             'en' => array(
-                2 => 'This post introduces the music video “{track_en}” by {artist_en}',
-                3 => 'Music video: “{track_en}” | Artist: {artist_en}',
+                2 => 'Download a New Music Video by {artist_en}: {track_en}',
+                3 => 'Download the Latest Music Video by {artist_en}: {track_en}',
             ),
         ),
         'album' => array(
             'fa' => array(
-                2 => 'آلبوم «{album}» اثر {artist} شامل {track_count} قطعهٔ ثبت‌شده است.',
-                3 => 'نام آلبوم: «{album}» | هنرمند: {artist} | تعداد قطعه‌ها: {track_count}.',
+                2 => 'دانلود آلبوم تازهٔ {artist} با نام {album}',
+                3 => 'دانلود آلبوم «{album}» از {artist}',
             ),
             'en' => array(
-                2 => 'Album “{album_en}” by {artist_en} contains {track_count_en} submitted tracks',
-                3 => 'Album: “{album_en}” | Artist: {artist_en} | Track count: {track_count_en}',
+                2 => 'Download a New Album by {artist_en}: {album_en}',
+                3 => 'Download the Latest Album by {artist_en}: {album_en}',
             ),
         ),
     );
@@ -181,6 +181,75 @@ class TaranehYar_SEO {
             : '';
     }
 
+    /** Upgrade saved built-in copy to the new category-linked layout without touching custom text. */
+    private static function legacy_intro_template( $type, $language, $variant ) {
+        $legacy = array(
+            'music' => array(
+                'fa' => array(
+                    1 => 'آهنگ «{track}» از {artist}.',
+                    2 => 'در این نوشته، آهنگ «{track}» با صدای {artist} معرفی می‌شود.',
+                    3 => 'نام اثر: «{track}» | خواننده: {artist}.',
+                ),
+                'en' => array(
+                    1 => '“{track_en}” by {artist_en}',
+                    2 => 'This post introduces “{track_en}” by {artist_en}',
+                    3 => 'Track: “{track_en}” | Artist: {artist_en}',
+                ),
+            ),
+            'remix' => array(
+                'fa' => array(
+                    1 => 'ریمیکس «{track}» از {artist}.',
+                    2 => 'ریمیکس «{track}» با اجرای {artist} معرفی می‌شود.',
+                    3 => 'نام ریمیکس: «{track}» | هنرمند: {artist}.',
+                ),
+                'en' => array(
+                    1 => 'Remix: “{track_en}” by {artist_en}',
+                    2 => 'This post introduces the remix “{track_en}” by {artist_en}',
+                    3 => 'Remix: “{track_en}” | Artist: {artist_en}',
+                ),
+            ),
+            'nohe' => array(
+                'fa' => array(
+                    1 => 'نوحه/مداحی «{track}» با صدای {artist}.',
+                    2 => 'نوحه/مداحی «{track}» با صدای {artist} معرفی می‌شود.',
+                    3 => 'عنوان نوحه: «{track}» | مداح: {artist}.',
+                ),
+                'en' => array(
+                    1 => 'Devotional recitation: “{track_en}” by {artist_en}',
+                    2 => 'This post introduces the devotional recitation “{track_en}” by {artist_en}',
+                    3 => 'Recitation: “{track_en}” | Performer: {artist_en}',
+                ),
+            ),
+            'video' => array(
+                'fa' => array(
+                    1 => 'موزیک‌ویدیوی «{track}» از {artist}.',
+                    2 => 'موزیک‌ویدیوی «{track}» از {artist} معرفی می‌شود.',
+                    3 => 'عنوان ویدیو: «{track}» | هنرمند: {artist}.',
+                ),
+                'en' => array(
+                    1 => 'Music video: “{track_en}” by {artist_en}',
+                    2 => 'This post introduces the music video “{track_en}” by {artist_en}',
+                    3 => 'Music video: “{track_en}” | Artist: {artist_en}',
+                ),
+            ),
+            'album' => array(
+                'fa' => array(
+                    1 => 'اطلاعات آلبوم «{album}» از {artist}؛ تعداد قطعه‌های ثبت‌شده: {track_count}.',
+                    2 => 'آلبوم «{album}» اثر {artist} شامل {track_count} قطعهٔ ثبت‌شده است.',
+                    3 => 'نام آلبوم: «{album}» | هنرمند: {artist} | تعداد قطعه‌ها: {track_count}.',
+                ),
+                'en' => array(
+                    1 => 'Album entry: “{album_en}” by {artist_en}. Track count: {track_count_en}',
+                    2 => 'Album “{album_en}” by {artist_en} contains {track_count_en} submitted tracks',
+                    3 => 'Album: “{album_en}” | Artist: {artist_en} | Track count: {track_count_en}',
+                ),
+            ),
+        );
+        return isset( $legacy[ $type ][ $language ][ (int) $variant ] )
+            ? $legacy[ $type ][ $language ][ (int) $variant ]
+            : '';
+    }
+
     /** Read an intro template while preserving an intentionally saved empty string. */
     public static function intro_template( $type, $language, $variant = 1 ) {
         $key = self::intro_option_key( $type, $language, $variant );
@@ -191,6 +260,11 @@ class TaranehYar_SEO {
         if ( is_array( $options ) && array_key_exists( $key, $options ) ) {
             $template = is_scalar( $options[ $key ] ) ? (string) $options[ $key ] : '';
         } else {
+            $template = self::default_intro_template( $type, $language, $variant );
+        }
+
+        $legacy_template = self::legacy_intro_template( $type, $language, $variant );
+        if ( $legacy_template !== '' && $template === $legacy_template ) {
             $template = self::default_intro_template( $type, $language, $variant );
         }
 
@@ -244,7 +318,7 @@ class TaranehYar_SEO {
             'album' => '', 'album_en' => '', 'site' => '', 'qualities' => '',
             'quality_sentence' => '', 'quality_sentence_en' => '', 'track_count' => '', 'track_count_en' => '', 'info' => '', 'category' => '',
         ), $variables );
-        // File quality is rendered once in the structured facts card, not repeated in the intro copy.
+        // File quality is kept out of the introduction; the theme can render mapped metadata in its own box.
         $intro_variables = $variables;
         $intro_variables['qualities'] = '';
         $intro_variables['quality_sentence'] = '';

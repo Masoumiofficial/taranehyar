@@ -57,7 +57,7 @@
             album_en: album ? trackEn : '',
             track_count: album ? persianDigits( trackCount ) : '',
             track_count_en: album ? String( trackCount ) : '',
-            // کیفیت در کارت مشخصات نمایش داده می‌شود تا در متن معرفی تکرار نشود.
+            // کیفیت از متن معرفی حذف می‌شود و از متادیتا برای باکس جداگانهٔ قالب در دسترس است.
             quality_sentence: '',
             quality_sentence_en: ''
         };

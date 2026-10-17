@@ -74,7 +74,7 @@ class TaranehYar_Settings {
         'meta_key_music128','meta_key_music320','meta_key_album',
         'meta_key_album128','meta_key_album320','meta_key_video480p',
         'meta_key_video720p','meta_key_video1080p','meta_key_fifu_image_alt',
-        'seo_title_tag_enabled','seo_meta_description_enabled','seo_jsonld_enabled','seo_category_links_enabled','seo_visible_details_enabled',
+        'seo_title_tag_enabled','seo_meta_description_enabled','seo_jsonld_enabled','seo_category_links_enabled',
         'seo_album_tracklist_enabled',
         'seo_post_title_music','seo_title_music','seo_description_music','seo_intro_music','seo_focus_music',
         'seo_post_title_remix','seo_title_remix','seo_description_remix','seo_intro_remix','seo_focus_remix',
@@ -123,7 +123,7 @@ class TaranehYar_Settings {
                 $clean[ $k ] = in_array( $value, array( '0', '1', '2', '3' ), true ) ? $value : '1';
             } elseif ( in_array( $k, array(
                 'seo_title_tag_enabled', 'seo_meta_description_enabled', 'seo_jsonld_enabled',
-                'seo_category_links_enabled', 'seo_visible_details_enabled', 'seo_album_tracklist_enabled',
+                'seo_category_links_enabled', 'seo_album_tracklist_enabled',
                 'credit_lyricist_enabled', 'credit_composer_enabled', 'credit_arranger_enabled',
                 'credit_mixer_enabled', 'credit_producer_enabled',
             ), true ) ) {
@@ -176,7 +176,7 @@ class TaranehYar_Settings {
         }
 
         echo '<div class="ty-copy-template-settings">';
-        echo '<p class="ty-hint">قالب‌ها را یک‌بار اینجا تنظیم کنید؛ نام خواننده و اثر هنگام ساخت پست خودکار جایگزین می‌شوند. کیفیت فایل‌ها در باکس مشخصات اثر نمایش داده می‌شود و در متن معرفی تکرار نمی‌شود.</p>';
+        echo '<p class="ty-hint">قالب‌ها را یک‌بار اینجا تنظیم کنید؛ نام خواننده و اثر هنگام ساخت پست خودکار جایگزین می‌شوند. مشخصات و کیفیت‌ها در متادیتا ذخیره می‌شوند تا قالب شما در باکس جداگانه نمایش دهد؛ افزونه آن‌ها را به متن پست اضافه نمی‌کند.</p>';
         foreach ( array( 'fa' => 'فارسی', 'en' => 'English' ) as $language => $language_label ) {
             echo '<section class="ty-copy-template-language" lang="' . esc_attr( $language === 'en' ? 'en' : 'fa' ) . '">';
             echo '<h3>' . esc_html( 'قالب‌های متن ' . $language_label ) . '</h3>';
@@ -188,7 +188,9 @@ class TaranehYar_Settings {
                 $default = TaranehYar_SEO::default_intro_template( $type, $language, $variant );
                 $number = array( 1 => '۱', 2 => '۲', 3 => '۳' )[ $variant ];
                 $label = ( $language === 'en' ? 'Text ' : 'متن ' ) . $number;
-                $this->textarea_row( $opts, $key, $label, $default, $default );
+                $template_options = $opts;
+                $template_options[ $key ] = TaranehYar_SEO::intro_template( $type, $language, $variant );
+                $this->textarea_row( $template_options, $key, $label, $default, $default );
             }
             echo '</table></section>';
         }
@@ -314,7 +316,7 @@ class TaranehYar_Settings {
                         </table>
                         <p class="ty-hint">کلید پیش‌فرض <code>album</code> تعداد ترک‌هاست؛ آرایهٔ قدیمی <code>album_dl</code> حفظ می‌شود. کلیدهای هر ترک یک‌مبنا هستند، مانند <code>album_1_song_names</code>، <code>album_1_albumlink128</code> و <code>album_1_albumlink320</code> تا حداکثر ۱۵ ترک.</p>
                         <h3>کنترل فیلدهای عوامل تولید</h3>
-                        <p class="ty-hint">فیلدهای روشن در فرم تک‌آهنگ، ریمیکس، نوحه و موزیک‌ویدیو نمایش داده می‌شوند؛ مقدارشان در کلید متای قابل‌نگاشت ذخیره می‌شود و نام تکسونومی‌های قبلی نیز برای سازگاری حفظ شده است. ردیف عوامل در کارت مشخصات به فعال‌بودن «نمایش مشخصات اثر و عوامل» بستگی دارد. خاموش‌کردن فیلد فقط بر پست‌های جدید اثر می‌گذارد و داده‌های قبلی را حذف نمی‌کند.</p>
+                        <p class="ty-hint">فیلدهای روشن در فرم تک‌آهنگ، ریمیکس، نوحه و موزیک‌ویدیو نمایش داده می‌شوند؛ مقدارشان در کلید متای قابل‌نگاشت ذخیره می‌شود و نام تکسونومی‌های قبلی نیز برای سازگاری حفظ شده است. افزونه عوامل و مشخصات را داخل متن پست چاپ نمی‌کند؛ قالب شما می‌تواند متادیتای آن‌ها را در باکس جداگانه بخواند. خاموش‌کردن فیلد فقط بر پست‌های جدید اثر می‌گذارد و داده‌های قبلی را حذف نمی‌کند.</p>
                         <table class="ty-settings-table">
                             <?php foreach ( self::CREDIT_FIELDS as $role => $credit_field ) :
                                 $toggle_key = 'credit_' . $role . '_enabled';
@@ -325,16 +327,15 @@ class TaranehYar_Settings {
                 </details>
 
                 <details class="ty-settings-group" id="ty-settings-seo" open>
-                    <summary><span>🔎 سئو، GEO و AIO</span><small>قواعد نوشته، متادیتا، نمایش اطلاعات و Schema</small></summary>
+                    <summary><span>🔎 سئو، GEO و AIO</span><small>قواعد متن، متادیتا و Schema</small></summary>
                     <div class="ty-settings-group-body">
-                        <p class="ty-hint">پیش‌فرض‌های فارسی و انگلیسی برای هر نوع محتوا دقیق و قابل ویرایش‌اند. متغیرهایی مثل <code>{artist}</code> و <code>{track_en}</code> هنگام ساخت پست با اطلاعات واقعی جایگزین می‌شوند؛ متغیر نامرتبط خالی می‌شود. قالب‌های سئو فقط روی پست‌های جدید اعمال می‌شوند و تنظیمات سراسری افزونه‌های SEO را تغییر نمی‌دهند.</p>
+                        <p class="ty-hint">پیش‌فرض‌های فارسی و انگلیسی برای هر نوع محتوا دقیق و قابل ویرایش‌اند. متغیرهایی مثل <code>{artist}</code> و <code>{track_en}</code> هنگام ساخت پست با اطلاعات واقعی جایگزین می‌شوند؛ متغیر نامرتبط خالی می‌شود. مشخصات اثر به‌صورت متادیتا ذخیره می‌شود و داخل متن پست چاپ نمی‌شود تا قالب بتواند آن را در باکس جداگانه نمایش دهد. قالب‌های سئو فقط روی پست‌های جدید اعمال می‌شوند و تنظیمات سراسری افزونه‌های SEO را تغییر نمی‌دهند.</p>
                         <table class="ty-settings-table">
                             <?php
                             $this->checkbox_row( $opts, 'seo_title_tag_enabled', 'عنوان تگ title (فقط اگر افزونهٔ SEO شناخته‌شده فعال نیست)' );
                             $this->checkbox_row( $opts, 'seo_meta_description_enabled', 'متای توضیحات پایه (فقط اگر افزونهٔ SEO شناخته‌شده فعال نیست)' );
                             $this->checkbox_row( $opts, 'seo_jsonld_enabled', 'Schema.org برای موزیک، آلبوم و ویدیو' );
-                            $this->checkbox_row( $opts, 'seo_category_links_enabled', 'پیوند کلیدواژهٔ اثر به دستهٔ مرتبط در متن پست' );
-                            $this->checkbox_row( $opts, 'seo_visible_details_enabled', 'نمایش مشخصات اثر و عوامل' );
+                            $this->checkbox_row( $opts, 'seo_category_links_enabled', 'پیوند عبارت «دانلود» به دستهٔ محتوای مربوط در متن پست' );
                             $this->checkbox_row( $opts, 'seo_album_tracklist_enabled', 'نمایش فهرست ترک آلبوم' );
                             ?>
                         </table>

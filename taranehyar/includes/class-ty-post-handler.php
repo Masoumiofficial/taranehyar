@@ -440,7 +440,7 @@ class TaranehYar_Post_Handler {
     }
 
     /** Render plain copy while safely inserting pre-escaped internal links. */
-    private function copy_html( $text, array $links = array() ) {
+    private function copy_html( $text, array $links = array(), $language = 'fa' ) {
         $text = (string) $text;
         $matches = array();
         foreach ( $links as $order => $link ) {
@@ -469,7 +469,9 @@ class TaranehYar_Post_Handler {
             $cursor = $match['start'] + $match['length'];
         }
         $html .= esc_html( substr( $text, $cursor ) );
-        return wpautop( $html );
+        $html = wpautop( $html );
+        $paragraph_attributes = $language === 'en' ? ' lang="en" dir="ltr"' : ' lang="fa" dir="rtl"';
+        return str_replace( '<p>', '<p style="text-align: center;"' . $paragraph_attributes . '>', $html );
     }
 
     /** Build a trusted internal-link element from an escaped keyword and URL. */
@@ -478,8 +480,17 @@ class TaranehYar_Post_Handler {
     }
 
     /** Keep an artist name escaped until the inserted post has its singer term. */
-    private function singer_link_placeholder( $artist ) {
-        return '<span class="ty-singer-link-placeholder">' . esc_html( $artist ) . '</span>';
+    private function singer_link_placeholder( $artist, $bold = false ) {
+        $name = esc_html( $artist );
+        if ( $bold ) {
+            $name = '<strong>' . $name . '</strong>';
+        }
+        return '<span class="ty-singer-link-placeholder">' . $name . '</span>';
+    }
+
+    /** Bold an escaped work title before inserting it into the plain-text template. */
+    private function strong_text_html( $text ) {
+        return '<strong>' . esc_html( $text ) . '</strong>';
     }
 
     /** Resolve the assigned singer archive, falling back to the site's search page. */
@@ -519,8 +530,8 @@ class TaranehYar_Post_Handler {
         return $content;
     }
 
-    /** Render the localized about heading and use remaining keywords as inline links. */
-    private function about_heading_html( $type, $track, $artist, $category_url, $link_categories, &$track_linked, &$artist_linked ) {
+    /** Render the localized about heading and link the work only if no category link exists yet. */
+    private function about_heading_html( $type, $track, $artist, $category_url, $link_categories, &$category_linked, &$artist_linked ) {
         if ( $track === '' && $artist === '' ) return '<h2>دربارهٔ اثر</h2>';
 
         $track_labels = array(
@@ -534,9 +545,9 @@ class TaranehYar_Post_Handler {
         $heading = '<h2>دربارهٔ اثر';
         if ( $track !== '' ) {
             $heading .= ' و ' . esc_html( $track_label ) . ' «';
-            if ( ! $track_linked && $link_categories && $category_url !== '' ) {
+            if ( ! $category_linked && $link_categories && $category_url !== '' ) {
                 $heading .= $this->keyword_link_html( $track, $category_url );
-                $track_linked = true;
+                $category_linked = true;
             } else {
                 $heading .= esc_html( $track );
             }
@@ -550,7 +561,7 @@ class TaranehYar_Post_Handler {
         return $heading . '</h2>';
     }
 
-    /** Build human-readable, escaped post content from the submitted facts. */
+    /** Build the intro and optional free-text about copy; facts remain in mapped metadata for the theme. */
     private function release_content( $type, array $seo, array $details, $info = '', array $credits = array(), array $category = array(), array $link_terms = array() ) {
         $type = sanitize_key( $type );
         $category_url = isset( $category['url'] ) && is_string( $category['url'] ) ? $category['url'] : '';
@@ -564,73 +575,55 @@ class TaranehYar_Post_Handler {
             : $this->first_detail_value( $details, array( 'نام اثر', 'نام ویدیو', 'نام آلبوم' ) );
         $track_en = isset( $link_terms['track_en'] ) && is_scalar( $link_terms['track_en'] ) ? trim( (string) $link_terms['track_en'] ) : '';
         $artist_linked = false;
-        $track_linked = false;
+        $category_linked = false;
         $intro_fa = isset( $seo['intro'] ) ? (string) $seo['intro'] : '';
         $intro_en = isset( $seo['intro_en'] ) ? (string) $seo['intro_en'] : '';
         $content = '<article class="ty-release-content ty-release-content--' . esc_attr( $type ) . '">';
 
+        if ( $intro_fa !== '' ) {
+            $fa_links = array();
+            if ( $link_categories && strpos( $intro_fa, 'دانلود' ) !== false ) {
+                $fa_links[] = array( 'text' => 'دانلود', 'html' => $this->keyword_link_html( 'دانلود', $category_url ) );
+                $category_linked = true;
+            }
+            if ( $artist !== '' && strpos( $intro_fa, $artist ) !== false ) {
+                $fa_links[] = array( 'text' => $artist, 'html' => $this->singer_link_placeholder( $artist, true ) );
+                $artist_linked = true;
+            }
+            if ( $track !== '' && strpos( $intro_fa, $track ) !== false ) {
+                $fa_links[] = array( 'text' => $track, 'html' => $this->strong_text_html( $track ) );
+            }
+            $content .= $this->copy_html( $intro_fa, $fa_links, 'fa' );
+        }
+
+        if ( $intro_en !== '' ) {
+            $en_links = array();
+            if ( ! $category_linked && $link_categories ) {
+                $download_position = stripos( $intro_en, 'download' );
+                if ( $download_position !== false ) {
+                    $download_text = substr( $intro_en, $download_position, strlen( 'download' ) );
+                    $en_links[] = array( 'text' => $download_text, 'html' => $this->keyword_link_html( $download_text, $category_url ) );
+                    $category_linked = true;
+                }
+            }
+            if ( $artist_en !== '' && strpos( $intro_en, $artist_en ) !== false ) {
+                $en_links[] = array( 'text' => $artist_en, 'html' => $this->singer_link_placeholder( $artist_en, true ) );
+                $artist_linked = true;
+            }
+            if ( $track_en !== '' && strpos( $intro_en, $track_en ) !== false ) {
+                $en_links[] = array( 'text' => $track_en, 'html' => $this->strong_text_html( $track_en ) );
+            }
+            $content .= $this->copy_html( $intro_en, $en_links, 'en' );
+        }
+
         if ( $intro_fa !== '' || $intro_en !== '' ) {
-            $content .= '<section class="ty-release-card ty-release-intro-card" aria-label="معرفی اثر">';
-            if ( $intro_fa !== '' ) {
-                $fa_links = array();
-                if ( $artist !== '' && strpos( $intro_fa, $artist ) !== false ) {
-                    $fa_links[] = array( 'text' => $artist, 'html' => $this->singer_link_placeholder( $artist ) );
-                    $artist_linked = true;
-                }
-                if ( $link_categories && $track !== '' && strpos( $intro_fa, $track ) !== false ) {
-                    $fa_links[] = array( 'text' => $track, 'html' => $this->keyword_link_html( $track, $category_url ) );
-                    $track_linked = true;
-                }
-                $content .= '<div class="ty-release-intro ty-release-intro-fa" lang="fa" dir="rtl">' . $this->copy_html( $intro_fa, $fa_links ) . '</div>';
-            }
-            if ( $intro_en !== '' ) {
-                $en_links = array();
-                if ( ! $artist_linked && $artist_en !== '' && strpos( $intro_en, $artist_en ) !== false ) {
-                    $en_links[] = array( 'text' => $artist_en, 'html' => $this->singer_link_placeholder( $artist_en ) );
-                    $artist_linked = true;
-                }
-                if ( $link_categories && $track_en !== '' && strpos( $intro_en, $track_en ) !== false ) {
-                    $en_links[] = array( 'text' => $track_en, 'html' => $this->keyword_link_html( $track_en, $category_url ) );
-                    $track_linked = true;
-                }
-                $content .= '<div class="ty-release-intro ty-release-intro-en" lang="en" dir="ltr">' . $this->copy_html( $intro_en, $en_links ) . '</div>';
-            }
-            $content .= '</section><!--more-->';
+            $content .= '<!--more-->';
         }
 
-        $show_facts = TaranehYar_Settings::get( 'seo_visible_details_enabled', '1' ) === '1';
-        $about_text = $show_facts
-            ? $this->about_text_without_duplicate_credits( $info, $credits )
-            : trim( (string) $info );
+        $about_text = $this->about_text_without_duplicate_credits( $info, $credits );
         if ( $about_text !== '' ) {
-            $heading = $this->about_heading_html( $type, $track, $artist, $category_url, $link_categories, $track_linked, $artist_linked );
+            $heading = $this->about_heading_html( $type, $track, $artist, $category_url, $link_categories, $category_linked, $artist_linked );
             $content .= '<section class="ty-release-card ty-release-about">' . $heading . '<div class="ty-release-about-text">' . wpautop( esc_html( $about_text ) ) . '</div></section>';
-        }
-
-        if ( $show_facts ) {
-            $rows = '';
-            $artist_labels = array( 'خواننده', 'هنرمند', 'مداح' );
-            $track_labels = array( 'نام اثر', 'نام ویدیو', 'نام آلبوم' );
-            foreach ( $details as $label => $value ) {
-                if ( ! is_scalar( $value ) || trim( (string) $value ) === '' ) continue;
-                $display_value = esc_html( (string) $value );
-                if ( ! $artist_linked && in_array( $label, $artist_labels, true ) && $artist !== '' && (string) $value === $artist ) {
-                    $display_value = $this->singer_link_placeholder( $artist );
-                    $artist_linked = true;
-                } elseif ( ! $track_linked && $link_categories && in_array( $label, $track_labels, true ) && $track !== '' && (string) $value === $track ) {
-                    $display_value = $this->keyword_link_html( $track, $category_url );
-                    $track_linked = true;
-                }
-                $rows .= '<div><dt>' . esc_html( $label ) . '</dt><dd>' . $display_value . '</dd></div>';
-            }
-            foreach ( $credits as $label => $value ) {
-                if ( is_scalar( $value ) && trim( (string) $value ) !== '' ) {
-                    $rows .= '<div><dt>' . esc_html( $label ) . '</dt><dd>' . esc_html( (string) $value ) . '</dd></div>';
-                }
-            }
-            if ( $rows !== '' ) {
-                $content .= '<section class="ty-release-card ty-release-facts"><h2>مشخصات اثر</h2><dl>' . $rows . '</dl></section>';
-            }
         }
 
         return $content . '</article>';
