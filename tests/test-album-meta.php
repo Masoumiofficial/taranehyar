@@ -19,15 +19,19 @@ $song         = 'آلبوم تست';
 
 $zip_url = TaranehYar_Album_Meta::file_url($host, $archive_path, 'Test Album [128].zip');
 $dir_url = TaranehYar_Album_Meta::file_url($host, $archive_path, 'Test Album [128]/');
-album_ok($zip_url === $host . '/album/a/test-artist/Test Album [128].zip', 'album ZIP URL remains a file URL');
-album_ok($dir_url === $host . '/album/a/test-artist/Test Album [128]/', 'album folder URL keeps its trailing slash');
+album_ok($zip_url === $host . '/album/a/test-artist/Test%20Album%20%5B128%5D.zip', 'album ZIP URL percent-encodes spaces and brackets');
+album_ok($dir_url === $host . '/album/a/test-artist/Test%20Album%20%5B128%5D/', 'album folder URL keeps its encoded path and trailing slash');
+
+$track_file_1 = TaranehYar_Album_Meta::track_file_name($album_name, 1);
+$track_file_2 = TaranehYar_Album_Meta::track_file_name($album_name, 2);
+album_ok($track_file_1 === 'Test Artist - Test Album - Track 01' && $track_file_1 !== $track_file_2, 'album track file names remain unique when Persian titles normalize identically');
 
 // پنج ترک باید دقیقاً اندیس‌های ۱ تا ۵ داشته باشند.
 $entries = array();
 for ($i = 1; $i <= 5; $i++) {
     $entries[] = array(
         'title' => "ترک شماره {$i}",
-        'file'  => "Test Artist - Track {$i}",
+        'file'  => TaranehYar_Album_Meta::track_file_name($album_name, $i),
     );
 }
 $built = TaranehYar_Album_Meta::build($entries, $artist, $song, $host, $archive_path, $album_name);
@@ -53,8 +57,9 @@ for ($i = 1; $i <= 5; $i++) {
     if ($built['meta'][$name_key] !== "ترک شماره {$i}") {
         $titles_ok = false;
     }
-    $expected128 = $host . '/album/a/test-artist/Test Artist - Test Album [128]/Test Artist - Track ' . $i . ' [128].mp3';
-    $expected320 = $host . '/album/a/test-artist/Test Artist - Test Album [320]/Test Artist - Track ' . $i . '.mp3';
+    $track_file = 'Test Artist - Test Album - Track ' . str_pad((string) $i, 2, '0', STR_PAD_LEFT);
+    $expected128 = $host . '/album/a/test-artist/Test%20Artist%20-%20Test%20Album%20%5B128%5D/' . rawurlencode($track_file . ' [128].mp3');
+    $expected320 = $host . '/album/a/test-artist/Test%20Artist%20-%20Test%20Album%20%5B320%5D/' . rawurlencode($track_file . '.mp3');
     if ($built['meta'][$url128_key] !== $expected128 || $built['meta'][$url320_key] !== $expected320 || $built['meta'][$url128_key] === $built['meta'][$url320_key]) {
         $links_ok = false;
     }
@@ -79,6 +84,18 @@ if ($legacy_ok) {
     }
 }
 album_ok($legacy_ok, 'album_dl keeps the historical title / al_url320 / al_url128 array');
+
+$sample_entries = array();
+for ($i = 1; $i <= 11; $i++) {
+    $sample_entries[] = array(
+        'title' => "ترک شماره {$i}",
+        'file'  => TaranehYar_Album_Meta::track_file_name('Mohsen Yeganeh - Rage Khab Album', $i),
+    );
+}
+$sample_album = TaranehYar_Album_Meta::build($sample_entries, $artist, $song, $host, $archive_path, 'Mohsen Yeganeh - Rage Khab Album');
+$sample_urls128 = array_column($sample_album['tracks_data'], 'al_url128');
+$sample_urls320 = array_column($sample_album['tracks_data'], 'al_url320');
+album_ok($sample_album['album'] === 11 && count(array_unique($sample_urls128)) === 11 && count(array_unique($sample_urls320)) === 11, 'all 11 tracks receive distinct 128 and 320 destinations');
 
 $empty = TaranehYar_Album_Meta::build(array(), $artist, $song, $host, $archive_path, $album_name);
 album_ok($empty['album'] === 0, 'empty album stores 0 as track count');

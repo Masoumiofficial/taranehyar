@@ -32,6 +32,9 @@ ok($album . ' [320]' === 'Artist - Album [320]', 'album 320 dir pattern');
 ok($album . ' [320].zip' === 'Artist - Album [320].zip', 'album 320 zip pattern');
 $track = smp_safe_name('Artist - Track');
 ok($track . ' [128].mp3' === 'Artist - Track [128].mp3', '128k file pattern');
+$album_track_1 = smp_safe_name('Mohsen Yeganeh - Rage Khab Album - Track 01');
+$album_track_2 = smp_safe_name('Mohsen Yeganeh - Rage Khab Album - Track 02');
+ok($album_track_1 !== $album_track_2, 'album track sequence keeps Persian titles from overwriting the same HostDL file');
 
 // ── archive_path: strict relative path validation and legacy fallback ──
 ok(smp_validate_archive_path('music/a/alireza-rozegar', 'music') === 'music/a/alireza-rozegar', 'valid music archive path');

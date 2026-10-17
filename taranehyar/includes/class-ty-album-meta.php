@@ -10,16 +10,28 @@ class TaranehYar_Album_Meta {
     /** بیشینهٔ ترک‌های فرم آلبوم (هم‌سان با endpoint هاست دانلود) */
     const MAX_TRACKS = 15;
 
-    /** ساخت URL مقصد یک فایل در هاست دانلود. */
+    /** ساخت نام فایل ASCII و یکتا برای هر ترک آلبوم. */
+    public static function track_file_name( $album_name, $position ) {
+        $index = max( 1, (int) $position );
+        return trim( (string) $album_name ) . ' - Track ' . str_pad( (string) $index, 2, '0', STR_PAD_LEFT );
+    }
+
+    /** ساخت URL مقصد یک فایل در هاست دانلود و encode کردن تک‌تک بخش‌های مسیر. */
     public static function file_url( $host, $archive_path, $filename ) {
         $base = rtrim( (string) $host, '/' );
-        $path = trim( (string) $archive_path, '/' );
-        $name = ltrim( (string) $filename, '/' );
-        $url  = $base;
-        if ( $path !== '' ) {
-            $url .= '/' . $path;
+        $parts = array();
+        foreach ( array( $archive_path, $filename ) as $path ) {
+            foreach ( explode( '/', trim( (string) $path, '/' ) ) as $segment ) {
+                if ( $segment !== '' ) {
+                    $parts[] = rawurlencode( $segment );
+                }
+            }
         }
-        return $url . '/' . $name;
+        $url = $base . '/' . implode( '/', $parts );
+        if ( substr( (string) $filename, -1 ) === '/' ) {
+            $url .= '/';
+        }
+        return $url;
     }
 
     /**

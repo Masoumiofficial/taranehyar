@@ -150,12 +150,18 @@ seo_ok(
         && strpos( $post_handler_source, 'TaranehYar_SEO::tags_for(' ) === false,
     'automatic WordPress post-tag generation is removed'
 );
+seo_ok(
+    strpos( $post_handler_source, 'ty-album-tracklist' ) === false
+        && strpos( $post_handler_source, 'ty-album-bulk-download' ) === false
+        && substr_count( $post_handler_source, 'TaranehYar_Album_Meta::track_file_name( $album_name, $i )' ) === 2,
+    'album download links stay in metadata while post content omits the tracklist and ZIP block; transfer and links share unique filenames'
+);
 
 $seo = new TaranehYar_SEO();
 $seo->enqueue_content_styles();
 seo_ok( isset( $GLOBALS['ty_seo_test_styles']['ty-release-content'] ) && $GLOBALS['ty_seo_test_styles']['ty-release-content'][0] === TY_PLUGIN_URL . 'assets/css/content.css', 'single-post pages enqueue the new release-card stylesheet' );
 $content_css = file_get_contents( __DIR__ . '/../taranehyar/assets/css/content.css' );
-seo_ok( preg_match( '/\\.ty-release-content\\s*\\{[^}]*text-align:\\s*center;/s', $content_css ) === 1 && strpos( $content_css, 'ty-release-facts' ) === false && strpos( $content_css, 'ty-category-link' ) === false, 'post copy is centered and the inline facts panel has been removed' );
+seo_ok( preg_match( '/\\.ty-release-content\\s*\\{[^}]*text-align:\\s*center;/s', $content_css ) === 1 && strpos( $content_css, 'ty-release-facts' ) === false && strpos( $content_css, 'ty-category-link' ) === false && strpos( $content_css, 'ty-album-tracklist' ) === false, 'post copy is centered and no inline facts panel or album tracklist styles remain' );
 seo_ok( $seo->filter_document_title( 'عنوان قالب' ) === 'عنوان SEO سفارشی', 'SEO title fallback applies when no SEO plugin owns the title' );
 $GLOBALS['ty_seo_test_options']['seo_title_tag_enabled'] = '0';
 seo_ok( $seo->filter_document_title( 'عنوان قالب' ) === 'عنوان قالب', 'document-title fallback can be disabled from settings' );

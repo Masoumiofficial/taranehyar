@@ -336,7 +336,7 @@ class TaranehYar_Settings {
                             $this->checkbox_row( $opts, 'seo_meta_description_enabled', 'متای توضیحات پایه (فقط اگر افزونهٔ SEO شناخته‌شده فعال نیست)' );
                             $this->checkbox_row( $opts, 'seo_jsonld_enabled', 'Schema.org برای موزیک، آلبوم و ویدیو' );
                             $this->checkbox_row( $opts, 'seo_category_links_enabled', 'پیوند عبارت «دانلود» به دستهٔ محتوای مربوط در متن پست' );
-                            $this->checkbox_row( $opts, 'seo_album_tracklist_enabled', 'نمایش فهرست ترک آلبوم' );
+                            $this->checkbox_row( $opts, 'seo_album_tracklist_enabled', 'افزودن قطعه‌های آلبوم به Schema.org' );
                             ?>
                         </table>
                         <?php foreach ( TaranehYar_SEO::CONTENT_TYPES as $seo_type => $seo_type_label ) : ?>

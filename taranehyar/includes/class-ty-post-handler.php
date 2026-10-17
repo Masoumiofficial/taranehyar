@@ -1120,7 +1120,7 @@ class TaranehYar_Post_Handler {
             }
             $track_entries[] = array(
                 'title' => $tname,
-                'file'  => $this->safe_filename( "{$artist_en} - {$tname}" ),
+                'file'  => TaranehYar_Album_Meta::track_file_name( $album_name, $i ),
             );
         }
         $built = TaranehYar_Album_Meta::build(
@@ -1175,18 +1175,6 @@ class TaranehYar_Post_Handler {
             $category,
             array( 'artist' => $artist, 'track' => $song, 'artist_en' => $artist_en, 'track_en' => $song_en )
         );
-        if ( TaranehYar_Settings::get( 'seo_album_tracklist_enabled', '1' ) === '1' && ! empty( $built['tracks_data'] ) ) {
-            $content .= '<section class="ty-album-tracklist"><h2>فهرست قطعه‌های آلبوم</h2><ol>';
-            foreach ( $built['tracks_data'] as $position => $track_data ) {
-                $content .= '<li><span>' . esc_html( $track_data['title'] ) . '</span>';
-                $content .= ' <a href="' . esc_url( $track_data['al_url128'] ) . '">دانلود ۱۲۸</a>';
-                $content .= ' <a href="' . esc_url( $track_data['al_url320'] ) . '">دانلود ۳۲۰</a></li>';
-            }
-            $content .= '</ol><p class="ty-album-bulk-download">دانلود یکجای آلبوم: '
-                . '<a href="' . esc_url( $album_url128 ) . '">فایل ZIP کیفیت ۱۲۸</a> | '
-                . '<a href="' . esc_url( $album_url320 ) . '">فایل ZIP کیفیت ۳۲۰</a></p></section>';
-        }
-
         list( $post_status, $req_msg ) = $this->post_status_and_msg( $is_draft );
 
         $post_id = wp_insert_post( array(
@@ -1258,7 +1246,7 @@ class TaranehYar_Post_Handler {
         for ( $i = 1; $i <= 15; $i++ ) {
             $tname = sanitize_text_field( wp_unslash( $_POST["track_name_{$i}"] ?? '' ) );
             $curl_data["track_name_{$i}"]    = $tname;
-            $curl_data["track_file_{$i}"]    = $tname !== '' ? $this->safe_filename( "{$artist_en} - {$tname}" ) : '';
+            $curl_data["track_file_{$i}"]    = $tname !== '' ? TaranehYar_Album_Meta::track_file_name( $album_name, $i ) : '';
             $curl_data["track_link320_{$i}"] = esc_url_raw( $_POST["track_link320_{$i}"] ?? '' );
             $curl_data["track_link128_{$i}"] = esc_url_raw( $_POST["track_link128_{$i}"] ?? '' );
         }
