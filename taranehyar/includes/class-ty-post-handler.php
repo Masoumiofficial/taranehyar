@@ -65,6 +65,57 @@ class TaranehYar_Post_Handler {
         return $taxonomy !== '' ? $taxonomy : 'singer';
     }
 
+    /** Read enabled credit fields, accepting the historical form keys as aliases. */
+    private function submitted_credit_values() {
+        $values = array();
+        foreach ( TaranehYar_Settings::CREDIT_FIELDS as $role => $definition ) {
+            $value = '';
+            if ( TaranehYar_Settings::credit_field_enabled( $role ) ) {
+                $post_keys = array( $definition['post_key'] );
+                if ( ! empty( $definition['legacy_post_key'] ) ) {
+                    $post_keys[] = $definition['legacy_post_key'];
+                }
+                foreach ( $post_keys as $post_key ) {
+                    if ( ! isset( $_POST[ $post_key ] ) || ! is_scalar( $_POST[ $post_key ] ) ) continue;
+                    $candidate = sanitize_text_field( wp_unslash( $_POST[ $post_key ] ) );
+                    if ( $candidate !== '' ) {
+                        $value = $candidate;
+                        break;
+                    }
+                }
+            }
+            $values[ $role ] = $value;
+        }
+        return $values;
+    }
+
+    /** Convert role-keyed values to the localized labels used by the post card. */
+    private function labeled_credit_values( array $values ) {
+        $labeled = array();
+        foreach ( TaranehYar_Settings::CREDIT_FIELDS as $role => $definition ) {
+            $value = isset( $values[ $role ] ) && is_scalar( $values[ $role ] )
+                ? trim( (string) $values[ $role ] )
+                : '';
+            $labeled[ $definition['label'] ] = TaranehYar_Settings::credit_field_enabled( $role ) ? $value : '';
+        }
+        return $labeled;
+    }
+
+    /** Save each enabled credit using its configurable meta key and legacy taxonomy. */
+    private function save_credit_values( $post_id, array $values ) {
+        foreach ( TaranehYar_Settings::CREDIT_FIELDS as $role => $definition ) {
+            if ( ! TaranehYar_Settings::credit_field_enabled( $role ) ) continue;
+            if ( ! isset( $values[ $role ] ) || ! is_scalar( $values[ $role ] ) ) continue;
+            $value = sanitize_text_field( (string) $values[ $role ] );
+            if ( $value === '' ) continue;
+
+            $this->update_mapped_meta( (int) $post_id, $role, $value );
+            if ( ! empty( $definition['taxonomy'] ) ) {
+                wp_set_object_terms( (int) $post_id, $value, $definition['taxonomy'] );
+            }
+        }
+    }
+
     /**
      * بررسی پسوند فایل آپلودی نسبت به لیست مجاز.
      * این تابع جلوی آپلود فایل‌های اجرایی (php, exe, ...) رو می‌گیره.
@@ -334,7 +385,8 @@ class TaranehYar_Post_Handler {
             'آهنگسازی', 'آهنگ‌سازی', 'آهنگ سازی', 'آهنگساز', 'آهنگ',
             'تنظیم‌کننده', 'تنظیم کننده', 'تنظیم',
             'میکس و مسترینگ', 'میکس‌ومسترینگ', 'میکس', 'مسترینگ',
-            'songwriter', 'lyricist', 'composer', 'arranger', 'mixing', 'mastering',
+            'تهیه‌کننده', 'تهیه کننده', 'تولیدکننده', 'تولید کننده',
+            'songwriter', 'lyricist', 'composer', 'arranger', 'mixing', 'mastering', 'producer', 'music producer',
         );
         $segments = preg_split( '/(?<=[.!?؟])\\s+|[,،;؛|\\r\\n]+/u', $info );
         if ( ! is_array( $segments ) ) return $info;
@@ -627,10 +679,7 @@ class TaranehYar_Post_Handler {
         $lyric      = sanitize_textarea_field( wp_unslash( $_POST['lyric'] ?? '' ) );
         $link320    = esc_url_raw( $_POST['link320'] ?? '' );
         $link128    = esc_url_raw( $_POST['link128'] ?? '' );
-        $songwriter = sanitize_text_field( wp_unslash( $_POST['lyrc'] ?? '' ) );
-        $composer   = sanitize_text_field( wp_unslash( $_POST['melody'] ?? '' ) );
-        $regulator  = sanitize_text_field( wp_unslash( $_POST['arrng'] ?? '' ) );
-        $mixmaster  = sanitize_text_field( wp_unslash( $_POST['mix'] ?? '' ) );
+        $credit_values = $this->submitted_credit_values();
         $post_copy_overrides = $this->selected_intro_overrides( $seo_type );
         $is_draft   = sanitize_text_field( $_POST['is_draft'] ?? 'publish' );
 
@@ -705,12 +754,7 @@ class TaranehYar_Post_Handler {
                 'کیفیت‌های ورودی' => implode( ' و ', $quality_values ),
             ),
             $info,
-            array(
-                'ترانه‌سرا' => $songwriter,
-                'آهنگساز' => $composer,
-                'تنظیم‌کننده' => $regulator,
-                'میکس و مسترینگ' => $mixmaster,
-            ),
+            $this->labeled_credit_values( $credit_values ),
             $category,
             array( 'artist' => $name, 'track' => $track, 'artist_en' => $enname, 'track_en' => $entrack )
         );
@@ -735,10 +779,7 @@ class TaranehYar_Post_Handler {
         wp_set_post_tags( $post_id, TaranehYar_SEO::tags_for( $seo_type, $name, $enname, $track ) );
         wp_set_object_terms( $post_id, $name, $this->singer_taxonomy() );
         $content = $this->link_singer_in_content( $post_id, $content, $name );
-        if ( $songwriter ) wp_set_object_terms( $post_id, $songwriter, 'songwriter' );
-        if ( $composer )   wp_set_object_terms( $post_id, $composer,   'composer' );
-        if ( $regulator )  wp_set_object_terms( $post_id, $regulator,  'regulator' );
-        if ( $mixmaster )  wp_set_object_terms( $post_id, $mixmaster,  'mixmaster' );
+        $this->save_credit_values( $post_id, $credit_values );
 
         $this->save_seo_metadata( $post_id, $seo_type, $seo );
         $this->update_mapped_meta( $post_id, 'art_name',       $name );
@@ -829,6 +870,7 @@ class TaranehYar_Post_Handler {
         $entrack  = sanitize_text_field( wp_unslash( $_POST['entrack'] ?? '' ) );
         $cover    = esc_url_raw( $_POST['cover'] ?? '' );
         $info     = sanitize_text_field( wp_unslash( $_POST['info'] ?? '' ) );
+        $credit_values = $this->submitted_credit_values();
         $link1080 = esc_url_raw( $_POST['link1080'] ?? '' );
         $link720  = esc_url_raw( $_POST['link720'] ?? '' );
         $link480  = esc_url_raw( $_POST['link480'] ?? '' );
@@ -904,7 +946,7 @@ class TaranehYar_Post_Handler {
                 'کیفیت‌های ورودی' => implode( ' و ', $quality_values ),
             ),
             $info,
-            array(),
+            $this->labeled_credit_values( $credit_values ),
             $category,
             array( 'artist' => $name, 'track' => $track, 'artist_en' => $enname, 'track_en' => $entrack )
         );
@@ -937,6 +979,7 @@ class TaranehYar_Post_Handler {
         wp_set_object_terms( $post_id, $name, $this->singer_taxonomy() );
         $content = $this->link_singer_in_content( $post_id, $content, $name );
         wp_set_post_tags( $post_id, TaranehYar_SEO::tags_for( 'video', $name, $enname, $track ) );
+        $this->save_credit_values( $post_id, $credit_values );
         if ( ! empty( $link1080 ) ) {
             $this->update_mapped_meta( $post_id, 'video1080p', $this->download_file_url( $urldlhost, $archive_path, $trackname . ' [1080].mp4' ) );
         }

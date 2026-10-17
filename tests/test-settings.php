@@ -1,6 +1,6 @@
 <?php
 /**
- * Unit tests for configurable theme metadata keys and singer taxonomy.
+ * Unit tests for configurable theme metadata, singer taxonomy and production-credit controls.
  * Run with: php tests/test-settings.php
  */
 define('ABSPATH', __DIR__ . '/');
@@ -30,23 +30,60 @@ function settings_ok($condition, $label) {
 $settings = new TaranehYar_Settings();
 settings_ok(TaranehYar_Settings::meta_key('artist_en') === 'artist_en', 'default artist_en key');
 settings_ok(TaranehYar_Settings::meta_key('video1080p') === 'video1080p', 'default video key');
+$credit_meta_defaults = true;
+foreach (array('lyricist', 'composer', 'arranger', 'mixer', 'producer') as $credit_role) {
+    if (TaranehYar_Settings::meta_key($credit_role) !== $credit_role) $credit_meta_defaults = false;
+}
+settings_ok($credit_meta_defaults, 'all production credits have stable default metadata keys');
+$credit_fields_default_enabled = true;
+foreach (array_keys(TaranehYar_Settings::CREDIT_FIELDS) as $credit_role) {
+    if (!TaranehYar_Settings::credit_field_enabled($credit_role)) $credit_fields_default_enabled = false;
+}
+settings_ok($credit_fields_default_enabled, 'credit fields stay enabled by default for existing installations');
+settings_ok(!TaranehYar_Settings::credit_field_enabled('unknown'), 'unknown credit settings are rejected');
 settings_ok(TaranehYar_Settings::meta_key('unknown') === '', 'unknown mapping is rejected');
 
 $GLOBALS['ty_test_options']['ty_options'] = array(
     'meta_key_artist_en' => 'custom_artist',
     'meta_key_album' => 'album_field',
+    'meta_key_lyricist' => 'lyrics_field',
+    'meta_key_mixer' => 'mixing_field',
     'singer_taxonomy' => 'performers',
 );
 settings_ok(TaranehYar_Settings::meta_key('artist_en') === 'custom_artist', 'custom artist metadata key');
 settings_ok(TaranehYar_Settings::meta_key('album') === 'album_field', 'custom album metadata key');
+settings_ok(TaranehYar_Settings::meta_key('lyricist') === 'lyrics_field' && TaranehYar_Settings::meta_key('mixer') === 'mixing_field', 'credit metadata keys can be mapped to theme-specific fields');
 settings_ok(TaranehYar_Settings::get('singer_taxonomy', 'singer') === 'performers', 'custom singer taxonomy setting');
 
 $clean = $settings->sanitize(array(
     'meta_key_artist_en' => 'Artist EN / Custom',
+    'meta_key_lyricist' => 'Lyricist Field!',
+    'meta_key_mixer' => 'Mix Master Field',
     'singer_taxonomy' => 'Singer Type!',
+    'credit_lyricist_enabled' => '0',
+    'credit_composer_enabled' => '1',
+    'credit_arranger_enabled' => 'invalid',
+    'credit_mixer_enabled' => '0',
+    'credit_producer_enabled' => '1',
 ));
 settings_ok($clean['meta_key_artist_en'] === 'artistencustom', 'metadata setting is sanitized as a key');
+settings_ok($clean['meta_key_lyricist'] === 'lyricistfield' && $clean['meta_key_mixer'] === 'mixmasterfield', 'credit metadata mappings are sanitized as keys');
 settings_ok($clean['singer_taxonomy'] === 'singertype', 'taxonomy setting is sanitized as a key');
+settings_ok(
+    $clean['credit_lyricist_enabled'] === '0'
+        && $clean['credit_composer_enabled'] === '1'
+        && $clean['credit_arranger_enabled'] === '0'
+        && $clean['credit_mixer_enabled'] === '0'
+        && $clean['credit_producer_enabled'] === '1',
+    'credit field toggles are stored as safe booleans'
+);
+$GLOBALS['ty_test_options']['ty_options'] = $clean;
+settings_ok(
+    !TaranehYar_Settings::credit_field_enabled('lyricist')
+        && TaranehYar_Settings::credit_field_enabled('composer')
+        && !TaranehYar_Settings::credit_field_enabled('arranger'),
+    'saved credit toggles control which fields are enabled'
+);
 
 $GLOBALS['ty_test_options']['ty_options']['apitoken'] = 'test-token-not-real';
 $token_clean = $settings->sanitize(array('apitoken' => ''));

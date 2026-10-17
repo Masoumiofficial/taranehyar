@@ -154,6 +154,23 @@ class TaranehYar_Admin_Pages {
         wp_nonce_field( $action_val );
     }
 
+    /* Render only the production-credit fields enabled in settings. */
+    private function credit_fields() {
+        $enabled_fields = array();
+        foreach ( TaranehYar_Settings::CREDIT_FIELDS as $role => $credit_field ) {
+            if ( TaranehYar_Settings::credit_field_enabled( $role ) ) {
+                $enabled_fields[ $role ] = $credit_field;
+            }
+        }
+        if ( empty( $enabled_fields ) ) return;
+
+        echo '<div class="ty-grid ty-grid-3" style="margin-top:14px">';
+        foreach ( $enabled_fields as $credit_field ) {
+            $this->field( $credit_field['label'], $this->input( $credit_field['post_key'], $credit_field['label'] ) );
+        }
+        echo '</div>';
+    }
+
     /* ═══════════════════════════════════════════════
        SHARED MUSIC FORM BODY (تک آهنگ / ریمیکس / نوحه)
     ═══════════════════════════════════════════════ */
@@ -178,12 +195,7 @@ class TaranehYar_Admin_Pages {
         echo '<div class="ty-grid" style="margin-top:14px">';
         $this->field( 'اطلاعات پست', $this->input('info','توضیحات کوتاه درباره اثر') );
         echo '</div>';
-        echo '<div class="ty-grid ty-grid-4" style="margin-top:14px">';
-        $this->field( 'ترانه‌سرا', $this->input('lyrc','ترانه‌سرا') );
-        $this->field( 'آهنگساز', $this->input('melody','آهنگساز') );
-        $this->field( 'تنظیم‌کننده', $this->input('arrng','تنظیم کننده') );
-        $this->field( 'میکس و مسترینگ', $this->input('mix','میکس و مسترینگ') );
-        echo '</div>';
+        $this->credit_fields();
         $this->card_close();
 
         $this->card_open('🖼️ کاور');
@@ -282,6 +294,7 @@ class TaranehYar_Admin_Pages {
         echo '<div class="ty-grid" style="margin-top:14px">';
         $this->field( 'اطلاعات پست', $this->input('info','توضیحات') );
         echo '</div>';
+        $this->credit_fields();
         $this->card_close();
 
         $this->card_open('🖼️ کاور');

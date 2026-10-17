@@ -10,6 +10,11 @@ class TaranehYar_Settings {
         'art_name'       => 'art_name',
         'track_name'     => 'track_name',
         'music_txt'      => 'music_txt',
+        'lyricist'       => 'lyricist',
+        'composer'       => 'composer',
+        'arranger'       => 'arranger',
+        'mixer'          => 'mixer',
+        'producer'       => 'producer',
         'music128'       => 'music128',
         'music320'       => 'music320',
         'album'          => 'album',
@@ -21,6 +26,40 @@ class TaranehYar_Settings {
         'fifu_image_alt' => 'fifu_image_alt',
     );
 
+    /** Credit-field contracts shared by the admin forms and post handler. */
+    const CREDIT_FIELDS = array(
+        'lyricist' => array(
+            'label' => 'ترانه‌سرا',
+            'post_key' => 'lyricist',
+            'legacy_post_key' => 'lyrc',
+            'taxonomy' => 'songwriter',
+        ),
+        'composer' => array(
+            'label' => 'آهنگساز',
+            'post_key' => 'composer',
+            'legacy_post_key' => 'melody',
+            'taxonomy' => 'composer',
+        ),
+        'arranger' => array(
+            'label' => 'تنظیم‌کننده',
+            'post_key' => 'arranger',
+            'legacy_post_key' => 'arrng',
+            'taxonomy' => 'regulator',
+        ),
+        'mixer' => array(
+            'label' => 'میکس و مسترینگ',
+            'post_key' => 'mixer',
+            'legacy_post_key' => 'mix',
+            'taxonomy' => 'mixmaster',
+        ),
+        'producer' => array(
+            'label' => 'تهیه‌کننده / تولیدکننده',
+            'post_key' => 'producer',
+            'legacy_post_key' => '',
+            'taxonomy' => 'producer',
+        ),
+    );
+
     const ALL_KEYS = array(
         'urldlhost','urlfunction_music','urlfunction_remix','urlfunction_video',
         'urlfunction_album','urlfunction_nohe','urlfunction_leech',
@@ -28,8 +67,10 @@ class TaranehYar_Settings {
         'namesite','namesite2','urlsite',
         'cat_music','cat_remix','cat_nohe','cat_video','cat_album',
         'singer_taxonomy',
+        'credit_lyricist_enabled','credit_composer_enabled','credit_arranger_enabled','credit_mixer_enabled','credit_producer_enabled',
         'meta_key_musics_type','meta_key_artist_en','meta_key_song_en',
         'meta_key_art_name','meta_key_track_name','meta_key_music_txt',
+        'meta_key_lyricist','meta_key_composer','meta_key_arranger','meta_key_mixer','meta_key_producer',
         'meta_key_music128','meta_key_music320','meta_key_album',
         'meta_key_album128','meta_key_album320','meta_key_video480p',
         'meta_key_video720p','meta_key_video1080p','meta_key_fifu_image_alt',
@@ -80,7 +121,12 @@ class TaranehYar_Settings {
             }
             if ( strpos( $k, 'seo_copy_default_' ) === 0 ) {
                 $clean[ $k ] = in_array( $value, array( '0', '1', '2', '3' ), true ) ? $value : '1';
-            } elseif ( in_array( $k, array( 'seo_title_tag_enabled', 'seo_meta_description_enabled', 'seo_jsonld_enabled', 'seo_category_links_enabled', 'seo_visible_details_enabled', 'seo_album_tracklist_enabled' ), true ) ) {
+            } elseif ( in_array( $k, array(
+                'seo_title_tag_enabled', 'seo_meta_description_enabled', 'seo_jsonld_enabled',
+                'seo_category_links_enabled', 'seo_visible_details_enabled', 'seo_album_tracklist_enabled',
+                'credit_lyricist_enabled', 'credit_composer_enabled', 'credit_arranger_enabled',
+                'credit_mixer_enabled', 'credit_producer_enabled',
+            ), true ) ) {
                 $clean[ $k ] = $value === '1' ? '1' : '0';
             } elseif ( $k === 'singer_taxonomy' || strpos( $k, 'meta_key_' ) === 0 ) {
                 $clean[ $k ] = sanitize_key( $value );
@@ -161,7 +207,7 @@ class TaranehYar_Settings {
         <div class="ty-wrap" dir="rtl" data-theme="light">
             <div class="ty-header">
                 <div class="ty-header-icon">⚙️</div>
-                <div class="ty-header-text"><h1>تنظیمات افزونه</h1><p>اتصال هاست، دسته‌بندی‌ها، متادیتای قالب و الگوهای محتوای پست</p></div>
+                <div class="ty-header-text"><h1>تنظیمات افزونه</h1><p>اتصال هاست، دسته‌بندی‌ها، عوامل تولید، متادیتای قالب و الگوهای محتوای پست</p></div>
                 <button type="button" class="ty-theme-toggle" id="ty-theme-toggle" title="تغییر حالت روز/شب" aria-label="تغییر حالت روز/شب">
                     <span class="ty-theme-icon-light">☀️</span>
                     <span class="ty-theme-icon-dark">🌙</span>
@@ -193,7 +239,7 @@ class TaranehYar_Settings {
                 <a href="#ty-settings-host">اتصال هاست</a>
                 <a href="#ty-settings-site">اطلاعات سایت</a>
                 <a href="#ty-settings-categories">دسته‌بندی‌ها</a>
-                <a href="#ty-settings-meta">متادیتای قالب</a>
+                <a href="#ty-settings-meta">قالب و عوامل تولید</a>
                 <a href="#ty-settings-seo">SEO / GEO / AIO و متن پست</a>
             </nav>
             <div class="ty-settings-tools" aria-label="نمایش بخش‌ها">
@@ -255,7 +301,7 @@ class TaranehYar_Settings {
                 </details>
 
                 <details class="ty-settings-group" id="ty-settings-meta">
-                    <summary><span>🧩 سازگاری با قالب</span><small>کلیدهای متا و تکسونومی خواننده</small></summary>
+                    <summary><span>🧩 سازگاری با قالب</span><small>کلیدهای متا، تکسونومی خواننده و عوامل تولید</small></summary>
                     <div class="ty-settings-group-body">
                         <table class="ty-settings-table">
                             <?php
@@ -267,6 +313,14 @@ class TaranehYar_Settings {
                             ?>
                         </table>
                         <p class="ty-hint">کلید پیش‌فرض <code>album</code> تعداد ترک‌هاست؛ آرایهٔ قدیمی <code>album_dl</code> حفظ می‌شود. کلیدهای هر ترک یک‌مبنا هستند، مانند <code>album_1_song_names</code>، <code>album_1_albumlink128</code> و <code>album_1_albumlink320</code> تا حداکثر ۱۵ ترک.</p>
+                        <h3>کنترل فیلدهای عوامل تولید</h3>
+                        <p class="ty-hint">فیلدهای روشن در فرم تک‌آهنگ، ریمیکس، نوحه و موزیک‌ویدیو نمایش داده می‌شوند؛ مقدارشان در کلید متای قابل‌نگاشت ذخیره می‌شود و نام تکسونومی‌های قبلی نیز برای سازگاری حفظ شده است. ردیف عوامل در کارت مشخصات به فعال‌بودن «نمایش مشخصات اثر و عوامل» بستگی دارد. خاموش‌کردن فیلد فقط بر پست‌های جدید اثر می‌گذارد و داده‌های قبلی را حذف نمی‌کند.</p>
+                        <table class="ty-settings-table">
+                            <?php foreach ( self::CREDIT_FIELDS as $role => $credit_field ) :
+                                $toggle_key = 'credit_' . $role . '_enabled';
+                                $this->checkbox_row( $opts, $toggle_key, 'فعال‌بودن فیلد «' . $credit_field['label'] . '» در فرم و ذخیره‌سازی' );
+                            endforeach; ?>
+                        </table>
                     </div>
                 </details>
 
@@ -332,5 +386,14 @@ class TaranehYar_Settings {
         $configured = self::get( 'meta_key_' . $key, $default );
         $configured = is_scalar( $configured ) ? sanitize_key( $configured ) : '';
         return $configured !== '' ? $configured : $default;
+    }
+
+    /** Whether a credit can be entered for new posts. */
+    public static function credit_field_enabled( $role ) {
+        if ( ! isset( self::CREDIT_FIELDS[ $role ] ) ) {
+            return false;
+        }
+        $enabled = self::get( 'credit_' . $role . '_enabled', '1' );
+        return is_scalar( $enabled ) && (string) $enabled === '1';
     }
 }

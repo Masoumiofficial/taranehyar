@@ -1,14 +1,16 @@
 <?php
 /**
- * Unit tests for content-type SEO defaults, placeholders and taxonomy terms.
+ * Unit tests for content-type SEO, credit fields, storage and taxonomy terms.
  * Run with: php tests/test-seo.php
  */
 define( 'ABSPATH', __DIR__ . '/' );
 define( 'TY_PLUGIN_URL', 'https://example.test/plugins/taranehyar/' );
-define( 'TY_VERSION', '1.0.8' );
+define( 'TY_VERSION', '1.1.0' );
 $GLOBALS['ty_seo_test_options'] = array();
 $GLOBALS['ty_seo_test_styles'] = array();
 $GLOBALS['ty_seo_test_post_updates'] = array();
+$GLOBALS['ty_seo_test_saved_meta'] = array();
+$GLOBALS['ty_seo_test_terms'] = array();
 $GLOBALS['ty_seo_test_meta'] = array( 42 => array(
     'ty_seo_title' => 'عنوان SEO سفارشی',
     'ty_seo_description' => 'توضیحات ساخت‌یافته',
@@ -52,18 +54,22 @@ function wp_update_post( $postarr ) {
     $GLOBALS['ty_seo_test_post_updates'][] = $postarr;
     return isset( $postarr['ID'] ) ? $postarr['ID'] : 0;
 }
+function update_post_meta( $post_id, $key, $value ) {
+    $GLOBALS['ty_seo_test_saved_meta'][ $post_id ][ $key ] = $value;
+    return true;
+}
+function wp_set_object_terms( $post_id, $terms, $taxonomy ) {
+    $GLOBALS['ty_seo_test_terms'][] = array( $post_id, $terms, $taxonomy );
+    return array();
+}
 function esc_html( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' ); }
 function esc_attr( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' ); }
 function esc_url( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' ); }
 function wpautop( $value ) { return '<p>' . $value . '</p>'; }
-class TaranehYar_Settings {
-    public static function get( $key, $default = '' ) {
-        return isset( $GLOBALS['ty_seo_test_options'][ $key ] ) ? $GLOBALS['ty_seo_test_options'][ $key ] : $default;
-    }
-    public static function meta_key( $key ) { return $key; }
-}
+require __DIR__ . '/../taranehyar/includes/class-ty-settings.php';
 require __DIR__ . '/../taranehyar/includes/class-ty-seo.php';
 require __DIR__ . '/../taranehyar/includes/class-ty-post-handler.php';
+require __DIR__ . '/../taranehyar/includes/class-ty-admin-pages.php';
 
 $fails = 0;
 function seo_ok( $condition, $label ) {
@@ -164,6 +170,95 @@ seo_ok( strpos( $rendered_selected_copy['intro'], 'قطعه آزمایشی' ) !=
 $_POST['post_text_fa'] = 'arbitrary raw text is ignored';
 $invalid_copy = $call_private( 'selected_intro_overrides', array( 'remix' ) );
 seo_ok( strpos( $invalid_copy['intro'], 'arbitrary raw text' ) === false && $invalid_copy['intro'] === $selected_copy['intro'], 'invalid or legacy free-text submissions fall back to the configured default choice' );
+
+$_POST = array(
+    'lyricist' => '  <b>شاعر تازه</b>  ',
+    'composer' => 'آهنگساز تازه',
+    'arranger' => 'تنظیم‌کننده تازه',
+    'mixer' => 'میکس‌کننده تازه',
+    'producer' => 'تولیدکننده تازه',
+);
+$submitted_credits = $call_private( 'submitted_credit_values', array() );
+seo_ok(
+    $submitted_credits['lyricist'] === 'شاعر تازه'
+        && $submitted_credits['composer'] === 'آهنگساز تازه'
+        && $submitted_credits['arranger'] === 'تنظیم‌کننده تازه'
+        && $submitted_credits['mixer'] === 'میکس‌کننده تازه'
+        && $submitted_credits['producer'] === 'تولیدکننده تازه',
+    'all enabled credits accept canonical form fields and are sanitized'
+);
+$labeled_submitted_credits = $call_private( 'labeled_credit_values', array( $submitted_credits ) );
+seo_ok(
+    $labeled_submitted_credits['ترانه‌سرا'] === 'شاعر تازه'
+        && $labeled_submitted_credits['آهنگساز'] === 'آهنگساز تازه'
+        && $labeled_submitted_credits['تنظیم‌کننده'] === 'تنظیم‌کننده تازه'
+        && $labeled_submitted_credits['میکس و مسترینگ'] === 'میکس‌کننده تازه'
+        && $labeled_submitted_credits['تهیه‌کننده / تولیدکننده'] === 'تولیدکننده تازه',
+    'submitted role keys map to clear Persian labels for the post facts card'
+);
+$_POST = array( 'lyrc' => 'شاعر قدیمی', 'melody' => 'آهنگساز قدیمی', 'arrng' => 'تنظیم قدیمی', 'mix' => 'میکس قدیمی' );
+$legacy_credits = $call_private( 'submitted_credit_values', array() );
+seo_ok(
+    $legacy_credits['lyricist'] === 'شاعر قدیمی'
+        && $legacy_credits['composer'] === 'آهنگساز قدیمی'
+        && $legacy_credits['arranger'] === 'تنظیم قدیمی'
+        && $legacy_credits['mixer'] === 'میکس قدیمی',
+    'historical credit form keys remain accepted'
+);
+
+$admin_pages = new TaranehYar_Admin_Pages();
+$render_credit_fields = Closure::bind( function () {
+    $this->credit_fields();
+}, $admin_pages, 'TaranehYar_Admin_Pages' );
+ob_start();
+$render_credit_fields();
+$credit_form_html = ob_get_clean();
+$all_credit_inputs_rendered = true;
+foreach ( array( 'lyricist', 'composer', 'arranger', 'mixer', 'producer' ) as $credit_input ) {
+    if ( strpos( $credit_form_html, 'name="' . $credit_input . '"' ) === false ) $all_credit_inputs_rendered = false;
+}
+seo_ok( $all_credit_inputs_rendered, 'the submission form renders all five credits when their settings are enabled' );
+$GLOBALS['ty_seo_test_options']['credit_producer_enabled'] = '0';
+$_POST['producer'] = 'نباید ذخیره شود';
+$disabled_credits = $call_private( 'submitted_credit_values', array() );
+ob_start();
+$render_credit_fields();
+$disabled_credit_form_html = ob_get_clean();
+seo_ok(
+    $disabled_credits['producer'] === '' && strpos( $disabled_credit_form_html, 'name="producer"' ) === false,
+    'disabling a credit hides the form field and ignores forged submissions'
+);
+$GLOBALS['ty_seo_test_options']['credit_producer_enabled'] = '1';
+
+$GLOBALS['ty_seo_test_options']['meta_key_lyricist'] = 'custom_lyricist_meta';
+$GLOBALS['ty_seo_test_options']['meta_key_mixer'] = 'custom_mixer_meta';
+$call_private( 'save_credit_values', array( 77, array(
+    'lyricist' => 'شاعر ذخیره‌شده',
+    'composer' => 'آهنگساز ذخیره‌شده',
+    'arranger' => 'تنظیم ذخیره‌شده',
+    'mixer' => 'میکس ذخیره‌شده',
+    'producer' => 'تهیه‌کننده ذخیره‌شده',
+) ) );
+seo_ok(
+    $GLOBALS['ty_seo_test_saved_meta'][77]['custom_lyricist_meta'] === 'شاعر ذخیره‌شده'
+        && $GLOBALS['ty_seo_test_saved_meta'][77]['composer'] === 'آهنگساز ذخیره‌شده'
+        && $GLOBALS['ty_seo_test_saved_meta'][77]['arranger'] === 'تنظیم ذخیره‌شده'
+        && $GLOBALS['ty_seo_test_saved_meta'][77]['custom_mixer_meta'] === 'میکس ذخیره‌شده'
+        && $GLOBALS['ty_seo_test_saved_meta'][77]['producer'] === 'تهیه‌کننده ذخیره‌شده',
+    'all production credits are saved under configurable post-meta keys'
+);
+$credit_taxonomies = array();
+foreach ( $GLOBALS['ty_seo_test_terms'] as $term_update ) {
+    if ( $term_update[0] === 77 ) $credit_taxonomies[] = $term_update[2];
+}
+seo_ok(
+    $credit_taxonomies === array( 'songwriter', 'composer', 'regulator', 'mixmaster', 'producer' ),
+    'historical credit taxonomies remain intact and producer gains its own taxonomy term'
+);
+$GLOBALS['ty_seo_test_options']['credit_producer_enabled'] = '0';
+$call_private( 'save_credit_values', array( 78, array( 'producer' => 'نباید ذخیره شود' ) ) );
+seo_ok( empty( $GLOBALS['ty_seo_test_saved_meta'][78] ), 'disabled credits are not persisted even if passed directly to the saver' );
+$GLOBALS['ty_seo_test_options']['credit_producer_enabled'] = '1';
 $remix_content = $call_private( 'release_content', array( 'remix', array( 'intro' => 'ریمیکس آزمایشی' ), array( 'نام اثر' => 'قطعه' ), '', array(), $category ) );
 seo_ok( strpos( $remix_content, 'category/13/' ) !== false && strpos( $remix_content, 'class="ty-release-keyword-link"' ) !== false && strpos( $remix_content, 'ty-category-link' ) === false, 'remix category URL is attached to the work keyword instead of a separate CTA' );
 seo_ok( strpos( $remix_content, 'مشاهدهٔ ریمیکس‌های بیشتر' ) === false && strpos( $remix_content, 'مشاهدهٔ آهنگ‌های بیشتر' ) === false, 'standalone category CTAs are absent from generated post content' );
@@ -183,12 +278,23 @@ $linked_music_content = $call_private( 'link_singer_in_content', array( 42, $mus
 seo_ok( strpos( $linked_music_content, 'href="https://example.test/singer/test-singer/"' ) !== false && strpos( $linked_music_content, 'class="ty-singer-link-placeholder"' ) === false, 'singer placeholder resolves to its internal taxonomy archive link' );
 seo_ok( ! empty( $GLOBALS['ty_seo_test_post_updates'] ) && $GLOBALS['ty_seo_test_post_updates'][0]['post_content'] === $linked_music_content, 'resolved singer link is saved into the inserted post content' );
 seo_ok( strpos( $remix_content, 'ty-lyrics-section' ) === false && strpos( $remix_content, 'متن ترانه' ) === false, 'lyrics are not duplicated into post content when stored in the separate music_txt field' );
-$credits = array( 'ترانه‌سرا' => 'شاعر آزمایشی', 'آهنگساز' => 'آهنگساز آزمایشی' );
+$credits = array(
+    'ترانه‌سرا' => 'شاعر آزمایشی',
+    'آهنگساز' => 'آهنگساز آزمایشی',
+    'تنظیم‌کننده' => 'تنظیم‌کننده آزمایشی',
+    'میکس و مسترینگ' => 'میکس‌کننده آزمایشی',
+    'تهیه‌کننده / تولیدکننده' => 'تهیه‌کننده آزمایشی',
+);
 $about_with_credit_sentence = $call_private( 'about_text_without_duplicate_credits', array(
-    'صدای اثر آرام است. عوامل تولید: ترانه‌سرا: شاعر آزمایشی و آهنگساز: آهنگساز آزمایشی در ساخت آن همکاری کردند.',
+    'صدای اثر آرام است. عوامل تولید: ترانه‌سرا: شاعر آزمایشی، آهنگساز: آهنگساز آزمایشی، تنظیم: تنظیم‌کننده آزمایشی، میکس و مسترینگ: میکس‌کننده آزمایشی و تهیه‌کننده: تهیه‌کننده آزمایشی در ساخت آن همکاری کردند.',
     $credits,
 ) );
 seo_ok( $about_with_credit_sentence === 'صدای اثر آرام است.', 'complete credit sentences are removed while unrelated about text remains' );
+$producer_sentence = $call_private( 'about_text_without_duplicate_credits', array(
+    'تهیه‌کننده: تهیه‌کننده آزمایشی.',
+    array( 'تهیه‌کننده / تولیدکننده' => 'تهیه‌کننده آزمایشی' ),
+) );
+seo_ok( $producer_sentence === '', 'producer credit labels are removed when duplicated in the free-text description' );
 $unrelated_about = 'The song quality and lyricist discussion remains.';
 seo_ok( $call_private( 'about_text_without_duplicate_credits', array( $unrelated_about, array( 'songwriter' => 'Ali' ) ) ) === $unrelated_about, 'credit-name matching does not remove unrelated words containing the same letters' );
 $styled_content = $call_private( 'release_content', array(
@@ -201,7 +307,11 @@ $styled_content = $call_private( 'release_content', array(
 ) );
 seo_ok( strpos( $styled_content, 'ty-release-intro-card' ) !== false && strpos( $styled_content, 'ty-release-about' ) !== false && strpos( $styled_content, 'ty-release-facts' ) !== false, 'introduction, about text and structured facts render in distinct cards' );
 seo_ok( strpos( $styled_content, '</section><!--more-->' ) !== false, 'WordPress more marker follows the complete introduction card' );
-seo_ok( substr_count( $styled_content, 'شاعر آزمایشی' ) === 1 && substr_count( $styled_content, 'آهنگساز آزمایشی' ) === 1 && strpos( $styled_content, 'صدای اثر آرام است.' ) !== false, 'producer credits appear only once in facts while unrelated about text remains' );
+$each_credit_appears_once = true;
+foreach ( array_values( $credits ) as $credit_value ) {
+    if ( substr_count( $styled_content, $credit_value ) !== 1 ) $each_credit_appears_once = false;
+}
+seo_ok( $each_credit_appears_once && strpos( $styled_content, 'صدای اثر آرام است.' ) !== false, 'all five credits appear once in facts while unrelated about text remains' );
 $localized_content = $call_private( 'release_content', array( 'nohe', array( 'intro' => 'متن فارسی', 'intro_en' => 'Download <script>alert(1)</script>.' ), array(), '', array(), array() ) );
 seo_ok( strpos( $localized_content, 'lang="en" dir="ltr"' ) !== false && strpos( $localized_content, '&lt;script&gt;' ) !== false, 'English introduction is visible, left-to-right, and safely escaped' );
 
