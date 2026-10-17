@@ -2,13 +2,13 @@
 
 پنل حرفه‌ای ارسال پست موزیک، ریمیکس، نوحه، موزیک ویدیو، آلبوم و لیچ فایل برای سایت‌های موزیک وردپرسی.
 
-**نسخهٔ توسعهٔ کد:** 2.0.1 (هنوز منتشر نشده) · **آخرین نسخهٔ منتشرشده:** 2.0.0 · **لایسنس:** GPL-2.0-or-later · **نویسنده:** [سجاد معصومی](https://sajadmasoumi.com)
+**نسخهٔ کد:** 2.0.1 · **آخرین نسخهٔ منتشرشده:** 2.0.1 · **لایسنس:** GPL-2.0-or-later · **نویسنده:** [سجاد معصومی](https://sajadmasoumi.com)
 
-## دانلود آخرین نسخهٔ منتشرشده: 2.0.0
+## دانلود آخرین نسخهٔ منتشرشده: 2.0.1
 
-- [ZIP افزونهٔ وردپرس — دانلود مستقیم](https://github.com/Masoumiofficial/taranehyar/releases/download/v2.0.0/taranehyar-v2.0.0.zip)
-- [ZIP هاست دانلود — دانلود مستقیم](https://github.com/Masoumiofficial/taranehyar/releases/download/v2.0.0/taranehyar-hostdl-v2.0.0.zip)
-- [صفحهٔ انتشار نسخهٔ 2.0.0](https://github.com/Masoumiofficial/taranehyar/releases/tag/v2.0.0)
+- [ZIP افزونهٔ وردپرس — دانلود مستقیم](https://github.com/Masoumiofficial/taranehyar/releases/download/v2.0.1/taranehyar-v2.0.1.zip)
+- [ZIP هاست دانلود — دانلود مستقیم](https://github.com/Masoumiofficial/taranehyar/releases/download/v2.0.1/taranehyar-hostdl-v2.0.1.zip)
+- [صفحهٔ انتشار نسخهٔ 2.0.1](https://github.com/Masoumiofficial/taranehyar/releases/tag/v2.0.1)
 - [آخرین PDF راهنمای نصب منتشرشده (نسخهٔ 1.0.7)](https://github.com/Masoumiofficial/taranehyar/releases/download/v1.0.7/taranehyar-install-guide-fa-v1.0.7.pdf)
 
 ## ساختار مخزن
@@ -55,7 +55,7 @@ gh workflow run release.yml -f mode=publish -f target=v1.0.0
 gh workflow run release.yml -f mode=publish -f draft=true
 ```
 
-> برای انتشار نسخهٔ بعدی: هدر `Version:` افزونه، `Stable tag:` در `readme.txt` و بخش `## <نسخه>` در `CHANGELOG.md` باید یکسان باشند؛ سپس برچسب را روی commit انتشار بسازید و push کنید. در این checkout نسخهٔ 2.0.1 در حال آماده‌سازی است و هنوز tag یا Release نشده؛ آخرین انتشار عمومی `v2.0.0` است.
+> برای انتشار نسخهٔ بعدی: هدر `Version:` افزونه، `Stable tag:` در `readme.txt` و بخش `## <نسخه>` در `CHANGELOG.md` باید یکسان باشند؛ سپس برچسب را روی commit انتشار بسازید و push کنید. در این checkout نسخهٔ `v2.0.1` منتشر شده است؛ آخرین Release عمومی و tag آن `v2.0.1` است.
 
 ## ساخت بسته انتشار
 
