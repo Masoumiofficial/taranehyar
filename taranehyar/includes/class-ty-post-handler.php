@@ -481,8 +481,33 @@ class TaranehYar_Post_Handler {
         return '<a class="ty-release-keyword-link" href="' . esc_url( $url ) . '">' . esc_html( $keyword ) . '</a>';
     }
 
-    /** Return the type-specific Persian download phrase so the whole phrase links to its category. */
-    private function category_intro_phrase( $type, $intro ) {
+    /** Return the complete Persian download phrase, including custom template variants. */
+    private function category_intro_phrase( $type, $intro, $artist = '', $track = '' ) {
+        $intro = ltrim( (string) $intro );
+        $positions = array();
+        foreach ( array( $artist, $track ) as $value ) {
+            $value = is_scalar( $value ) ? trim( (string) $value ) : '';
+            if ( $value === '' ) {
+                continue;
+            }
+            // Use the last occurrence to avoid matching short names inside words like «مداحی».
+            $position = strrpos( $intro, $value );
+            if ( $position !== false ) {
+                $positions[] = $position;
+            }
+        }
+        if ( ! empty( $positions ) ) {
+            $phrase = substr( $intro, 0, min( $positions ) );
+            $phrase = preg_replace( '/\\s+(?:با صدای|با اجرای|با نام|به نام|با عنوان|به عنوان|از|برای)\\s*$/u', '', $phrase );
+            $phrase = preg_replace( '/[\\s«»“”\"،,:؛\\-–—]+$/u', '', $phrase );
+            $phrase = trim( $phrase );
+            if ( strpos( $phrase, 'دانلود' ) === 0 && $phrase !== 'دانلود' ) {
+                return $phrase;
+            }
+            return '';
+        }
+
+        // Handle templates with no artist/title placeholder if they match a known default prefix.
         $phrases = array(
             'music' => array( 'دانلود آهنگ تازهٔ', 'دانلود آهنگ جدید', 'دانلود آهنگ' ),
             'remix' => array( 'دانلود ریمیکس تازهٔ', 'دانلود ریمیکس جدید', 'دانلود ریمیکس' ),
@@ -490,15 +515,14 @@ class TaranehYar_Post_Handler {
             'video' => array( 'دانلود موزیک‌ویدیوی تازهٔ', 'دانلود موزیک‌ویدیوی', 'دانلود موزیک ویدیو جدید' ),
             'album' => array( 'دانلود آلبوم تازهٔ', 'دانلود آلبوم جدید', 'دانلود آلبوم' ),
         );
-        if ( ! isset( $phrases[ $type ] ) ) {
-            return '';
-        }
-        foreach ( $phrases[ $type ] as $phrase ) {
-            if ( strpos( $intro, $phrase ) === 0 ) {
-                return $phrase;
+        if ( isset( $phrases[ $type ] ) ) {
+            foreach ( $phrases[ $type ] as $phrase ) {
+                if ( strpos( $intro, $phrase ) === 0 ) {
+                    return $phrase;
+                }
             }
         }
-        return strpos( $intro, 'دانلود' ) === 0 ? 'دانلود' : '';
+        return '';
     }
 
     /** Link a bold Persian category phrase without adding presentation-specific classes. */
@@ -609,7 +633,7 @@ class TaranehYar_Post_Handler {
 
         if ( $intro_fa !== '' ) {
             $fa_links = array();
-            $category_phrase = $link_categories ? $this->category_intro_phrase( $type, $intro_fa ) : '';
+            $category_phrase = $link_categories ? $this->category_intro_phrase( $type, $intro_fa, $artist, $track ) : '';
             if ( $category_phrase !== '' ) {
                 $fa_links[] = array( 'text' => $category_phrase, 'html' => $this->category_intro_link_html( $category_phrase, $category_url ) );
                 $category_linked = true;

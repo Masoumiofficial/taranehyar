@@ -291,6 +291,32 @@ foreach ( $category_phrase_cases as $phrase_case ) {
     }
 }
 seo_ok( $alternative_category_phrases_match, 'alternative Persian templates select the full category phrase for each content type' );
+$custom_category_phrase_cases = array(
+    array( 'music', 'دانلود تک‌آهنگ تازهٔ خواننده با نام قطعه', 'خواننده', 'قطعه', 'دانلود تک‌آهنگ تازهٔ' ),
+    array( 'remix', 'دانلود ریمیکس ویژه از هنرمند با نام اثر', 'هنرمند', 'اثر', 'دانلود ریمیکس ویژه' ),
+    array( 'nohe', 'دانلود مداحی خاص با صدای مداح برای نوحه', 'مداح', 'نوحه', 'دانلود مداحی خاص' ),
+    array( 'video', 'دانلود موزیک ویدیوی تازه با اجرای خواننده برای اثر', 'خواننده', 'اثر', 'دانلود موزیک ویدیوی تازه' ),
+    array( 'album', 'دانلود مجموعه با نام آلبوم از خواننده', 'خواننده', 'آلبوم', 'دانلود مجموعه' ),
+);
+$custom_category_phrases_match = true;
+foreach ( $custom_category_phrase_cases as $phrase_case ) {
+    $custom_category_url = 'https://example.test/category/custom/';
+    $custom_terms = array( 'artist' => $phrase_case[2], 'track' => $phrase_case[3] );
+    $custom_content = $call_private( 'release_content', array(
+        $phrase_case[0],
+        array( 'intro' => $phrase_case[1], 'intro_en' => '' ),
+        array(),
+        '',
+        array(),
+        array( 'url' => $custom_category_url ),
+        $custom_terms,
+    ) );
+    $expected_custom_link = '<a href="' . $custom_category_url . '"><strong>' . $phrase_case[4] . '</strong></a>';
+    if ( strpos( $custom_content, $expected_custom_link ) === false || strpos( $custom_content, '<strong>دانلود</strong></a>' ) !== false ) {
+        $custom_category_phrases_match = false;
+    }
+}
+seo_ok( $custom_category_phrases_match, 'custom Persian copy links its full download lead-in instead of only «دانلود»' );
 $music_terms = array( 'artist' => 'ناصر زینعلی 13', 'track' => 'زود رفت', 'artist_en' => 'Naser Zeynali-13', 'track_en' => 'Zood Raft' );
 $music_intro = TaranehYar_SEO::profile( 'music', array_merge( $vars, $music_terms ) );
 $music_content = $call_private( 'release_content', array(
