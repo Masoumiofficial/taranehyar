@@ -469,14 +469,41 @@ class TaranehYar_Post_Handler {
             $cursor = $match['start'] + $match['length'];
         }
         $html .= esc_html( substr( $text, $cursor ) );
-        $html = wpautop( $html );
-        $paragraph_attributes = $language === 'en' ? ' lang="en" dir="ltr"' : ' lang="fa" dir="rtl"';
-        return str_replace( '<p>', '<p style="text-align: center;"' . $paragraph_attributes . '>', $html );
+        $html = trim( wpautop( $html ) );
+        $paragraph_attributes = $language === 'en'
+            ? ' dir="ltr" lang="en" style="text-align: center;"'
+            : ' dir="rtl" lang="fa" style="text-align: center;"';
+        return str_replace( '<p>', '<p' . $paragraph_attributes . '>', $html );
     }
 
     /** Build a trusted internal-link element from an escaped keyword and URL. */
     private function keyword_link_html( $keyword, $url ) {
         return '<a class="ty-release-keyword-link" href="' . esc_url( $url ) . '">' . esc_html( $keyword ) . '</a>';
+    }
+
+    /** Return the type-specific Persian download phrase so the whole phrase links to its category. */
+    private function category_intro_phrase( $type, $intro ) {
+        $phrases = array(
+            'music' => array( 'دانلود آهنگ تازهٔ', 'دانلود آهنگ جدید', 'دانلود آهنگ' ),
+            'remix' => array( 'دانلود ریمیکس تازهٔ', 'دانلود ریمیکس جدید', 'دانلود ریمیکس' ),
+            'nohe'  => array( 'دانلود نوحه و مداحی جدید', 'دانلود مداحی تازه', 'دانلود نوحهٔ' ),
+            'video' => array( 'دانلود موزیک‌ویدیوی تازهٔ', 'دانلود موزیک‌ویدیوی', 'دانلود موزیک ویدیو جدید' ),
+            'album' => array( 'دانلود آلبوم تازهٔ', 'دانلود آلبوم جدید', 'دانلود آلبوم' ),
+        );
+        if ( ! isset( $phrases[ $type ] ) ) {
+            return '';
+        }
+        foreach ( $phrases[ $type ] as $phrase ) {
+            if ( strpos( $intro, $phrase ) === 0 ) {
+                return $phrase;
+            }
+        }
+        return strpos( $intro, 'دانلود' ) === 0 ? 'دانلود' : '';
+    }
+
+    /** Link a bold Persian category phrase without adding presentation-specific classes. */
+    private function category_intro_link_html( $phrase, $url ) {
+        return '<a href="' . esc_url( $url ) . '"><strong>' . esc_html( $phrase ) . '</strong></a>';
     }
 
     /** Keep an artist name escaped until the inserted post has its singer term. */
@@ -578,12 +605,13 @@ class TaranehYar_Post_Handler {
         $category_linked = false;
         $intro_fa = isset( $seo['intro'] ) ? (string) $seo['intro'] : '';
         $intro_en = isset( $seo['intro_en'] ) ? (string) $seo['intro_en'] : '';
-        $content = '<article class="ty-release-content ty-release-content--' . esc_attr( $type ) . '">';
+        $content = '<article class="ty-release-content ty-release-content--' . esc_attr( $type ) . '">' . "\n";
 
         if ( $intro_fa !== '' ) {
             $fa_links = array();
-            if ( $link_categories && strpos( $intro_fa, 'دانلود' ) !== false ) {
-                $fa_links[] = array( 'text' => 'دانلود', 'html' => $this->keyword_link_html( 'دانلود', $category_url ) );
+            $category_phrase = $link_categories ? $this->category_intro_phrase( $type, $intro_fa ) : '';
+            if ( $category_phrase !== '' ) {
+                $fa_links[] = array( 'text' => $category_phrase, 'html' => $this->category_intro_link_html( $category_phrase, $category_url ) );
                 $category_linked = true;
             }
             if ( $artist !== '' && strpos( $intro_fa, $artist ) !== false ) {
@@ -593,37 +621,28 @@ class TaranehYar_Post_Handler {
             if ( $track !== '' && strpos( $intro_fa, $track ) !== false ) {
                 $fa_links[] = array( 'text' => $track, 'html' => $this->strong_text_html( $track ) );
             }
-            $content .= $this->copy_html( $intro_fa, $fa_links, 'fa' );
+            $content .= $this->copy_html( $intro_fa, $fa_links, 'fa' ) . "\n";
         }
 
         if ( $intro_en !== '' ) {
             $en_links = array();
-            if ( ! $category_linked && $link_categories ) {
-                $download_position = stripos( $intro_en, 'download' );
-                if ( $download_position !== false ) {
-                    $download_text = substr( $intro_en, $download_position, strlen( 'download' ) );
-                    $en_links[] = array( 'text' => $download_text, 'html' => $this->keyword_link_html( $download_text, $category_url ) );
-                    $category_linked = true;
-                }
-            }
             if ( $artist_en !== '' && strpos( $intro_en, $artist_en ) !== false ) {
-                $en_links[] = array( 'text' => $artist_en, 'html' => $this->singer_link_placeholder( $artist_en, true ) );
-                $artist_linked = true;
+                $en_links[] = array( 'text' => $artist_en, 'html' => $this->strong_text_html( $artist_en ) );
             }
             if ( $track_en !== '' && strpos( $intro_en, $track_en ) !== false ) {
                 $en_links[] = array( 'text' => $track_en, 'html' => $this->strong_text_html( $track_en ) );
             }
-            $content .= $this->copy_html( $intro_en, $en_links, 'en' );
+            $content .= $this->copy_html( $intro_en, $en_links, 'en' ) . "\n";
         }
 
         if ( $intro_fa !== '' || $intro_en !== '' ) {
-            $content .= '<!--more-->';
+            $content .= '<!--more-->' . "\n\n";
         }
 
         $about_text = $this->about_text_without_duplicate_credits( $info, $credits );
         if ( $about_text !== '' ) {
             $heading = $this->about_heading_html( $type, $track, $artist, $category_url, $link_categories, $category_linked, $artist_linked );
-            $content .= '<section class="ty-release-card ty-release-about">' . $heading . '<div class="ty-release-about-text">' . wpautop( esc_html( $about_text ) ) . '</div></section>';
+            $content .= '<section class="ty-release-card ty-release-about">' . $heading . '<div class="ty-release-about-text">' . wpautop( esc_html( $about_text ) ) . '</div></section>' . "\n";
         }
 
         return $content . '</article>';
