@@ -776,7 +776,6 @@ class TaranehYar_Post_Handler {
             $this->redirect( $redirect_page, 'خطا در ایجاد پست: ' . $post_id->get_error_message(), true );
         }
 
-        wp_set_post_tags( $post_id, TaranehYar_SEO::tags_for( $seo_type, $name, $enname, $track ) );
         wp_set_object_terms( $post_id, $name, $this->singer_taxonomy() );
         $content = $this->link_singer_in_content( $post_id, $content, $name );
         $this->save_credit_values( $post_id, $credit_values );
@@ -978,7 +977,6 @@ class TaranehYar_Post_Handler {
         update_post_meta( $post_id, 'online_ply', 'off' );
         wp_set_object_terms( $post_id, $name, $this->singer_taxonomy() );
         $content = $this->link_singer_in_content( $post_id, $content, $name );
-        wp_set_post_tags( $post_id, TaranehYar_SEO::tags_for( 'video', $name, $enname, $track ) );
         $this->save_credit_values( $post_id, $credit_values );
         if ( ! empty( $link1080 ) ) {
             $this->update_mapped_meta( $post_id, 'video1080p', $this->download_file_url( $urldlhost, $archive_path, $trackname . ' [1080].mp4' ) );
@@ -1188,7 +1186,6 @@ class TaranehYar_Post_Handler {
 
         wp_set_object_terms( $post_id, $artist, $this->singer_taxonomy() );
         $content = $this->link_singer_in_content( $post_id, $content, $artist );
-        wp_set_post_tags( $post_id, TaranehYar_SEO::tags_for( 'album', $artist, $artist_en, $song ) );
 
         /*
          * متاهای ساختار قالب: یک‌مبنا برای کلیدهای album_{n}_...؛

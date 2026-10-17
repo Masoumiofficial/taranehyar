@@ -5,7 +5,7 @@
  */
 define( 'ABSPATH', __DIR__ . '/' );
 define( 'TY_PLUGIN_URL', 'https://example.test/plugins/taranehyar/' );
-define( 'TY_VERSION', '1.1.0' );
+define( 'TY_VERSION', '2.0.0' );
 $GLOBALS['ty_seo_test_options'] = array();
 $GLOBALS['ty_seo_test_styles'] = array();
 $GLOBALS['ty_seo_test_post_updates'] = array();
@@ -135,11 +135,13 @@ seo_ok( TaranehYar_SEO::intro_template( 'music', 'fa', 3 ) === '', 'an intention
 $custom = TaranehYar_SEO::profile( 'remix', $vars, array( 'title' => 'الگوی دلخواه {artist} / {track}' ) );
 seo_ok( $custom['title'] === 'الگوی دلخواه خواننده آزمایشی / قطعه آزمایشی', 'custom per-type SEO template renders user-defined text' );
 
-$remix_tags = TaranehYar_SEO::tags_for( 'remix', 'خواننده', 'Artist', 'قطعه' );
-$nohe_tags = TaranehYar_SEO::tags_for( 'nohe', 'مداح', 'Maddah', 'نوحه' );
-seo_ok( in_array( 'دانلود ریمیکس', $remix_tags, true ) && ! in_array( 'دانلود آهنگ', $remix_tags, true ), 'remix tags do not inherit generic song-download labels' );
-seo_ok( in_array( 'دانلود نوحه', $nohe_tags, true ) && in_array( 'دانلود مداحی', $nohe_tags, true ) && in_array( 'نوحه', $nohe_tags, true ), 'nohe tags include devotional search terms' );
-seo_ok( in_array( 'دانلود آهنگ', TaranehYar_SEO::tags_for( 'music', 'خواننده', '', 'قطعه' ), true ), 'single-track tags retain the song-download label' );
+$post_handler_source = file_get_contents( __DIR__ . '/../taranehyar/includes/class-ty-post-handler.php' );
+seo_ok(
+    ! method_exists( 'TaranehYar_SEO', 'tags_for' )
+        && strpos( $post_handler_source, 'wp_set_post_tags(' ) === false
+        && strpos( $post_handler_source, 'TaranehYar_SEO::tags_for(' ) === false,
+    'automatic WordPress post-tag generation is removed'
+);
 
 $seo = new TaranehYar_SEO();
 $seo->enqueue_content_styles();

@@ -263,25 +263,6 @@ class TaranehYar_SEO {
         return $result;
     }
 
-    /** Type-specific concise tags: categories and terms remain the primary taxonomy. */
-    public static function tags_for( $type, $artist, $artist_en, $track ) {
-        $base = array(
-            'music' => array( 'دانلود آهنگ', 'آهنگ ایرانی' ),
-            'remix' => array( 'دانلود ریمیکس', 'ریمیکس' ),
-            'nohe'  => array( 'دانلود نوحه', 'دانلود مداحی', 'نوحه', 'مداحی' ),
-            'video' => array( 'دانلود موزیک ویدیو', 'موزیک ویدیو' ),
-            'album' => array( 'دانلود آلبوم', 'آلبوم موسیقی' ),
-        );
-        $tags = isset( $base[ $type ] ) ? $base[ $type ] : $base['music'];
-        foreach ( array( $artist, $artist_en, $track ) as $term ) {
-            $term = trim( (string) $term );
-            if ( $term !== '' ) {
-                $tags[] = $term;
-            }
-        }
-        return array_values( array_unique( $tags ) );
-    }
-
     /** Emit a description fallback only when no recognized SEO plugin owns wp_head. */
     private function has_seo_plugin() {
         return defined( 'WPSEO_VERSION' )
